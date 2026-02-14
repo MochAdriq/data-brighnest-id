@@ -20,9 +20,10 @@ import {
     X,
     Lock,
     Unlock,
+    ArrowLeft,
 } from "lucide-react";
 
-// --- 1. SETTING DATA KATEGORI (HARDCODE DISINI) ---
+// DATA KATEGORI (Sama seperti Input)
 const CATEGORIES = [
     {
         id: "umum",
@@ -32,7 +33,7 @@ const CATEGORIES = [
     },
     {
         id: "pemerintahan",
-        label: "Pemerintahan & Politik",
+        label: "Pemerintahan",
         icon: <Building2 className="w-6 h-6" />,
         color: "bg-blue-50 text-blue-600 border-blue-200",
     },
@@ -50,7 +51,7 @@ const CATEGORIES = [
     },
     {
         id: "bisnis",
-        label: "Bisnis & Industri",
+        label: "Bisnis",
         icon: <Factory className="w-6 h-6" />,
         color: "bg-indigo-50 text-indigo-600 border-indigo-200",
     },
@@ -62,13 +63,12 @@ const CATEGORIES = [
     },
     {
         id: "sosial",
-        label: "Sosial & Kesejahteraan",
+        label: "Sosial",
         icon: <HeartHandshake className="w-6 h-6" />,
         color: "bg-pink-50 text-pink-600 border-pink-200",
     },
 ];
 
-// BOSS BISA NAMBAH SUB KATEGORI DISINI:
 const SUB_CATEGORIES = {
     umum: [
         "Geografi & Wilayah",
@@ -123,26 +123,29 @@ const SUB_CATEGORIES = {
     ],
 };
 
-export default function SurveyInput({ auth }) {
-    const { flash } = usePage().props;
-
-    const [tags, setTags] = useState([]);
+export default function Edit({ auth, survey }) {
+    // 1. Setup Tags Awal
+    // Pastikan tags berupa array (karena dari DB bisa jadi JSON/Array)
+    const initialTags = Array.isArray(survey.tags) ? survey.tags : [];
+    const [tags, setTags] = useState(initialTags);
     const [currentTag, setCurrentTag] = useState("");
 
-    const { data, setData, post, processing, errors, reset } = useForm({
-        type: "series",
-        title: "",
-        category: "",
-        subcategory: "",
-        period: "",
-        pic: "",
-        notes: "",
-        content: "",
-        tags: "",
-        is_premium: false,
+    // 2. Setup Form dengan Data Lama
+    const { data, setData, put, processing, errors } = useForm({
+        type: survey.type || "series",
+        title: survey.title || "",
+        category: survey.category || "",
+        subcategory: survey.subcategory || "",
+        period: survey.period || "",
+        pic: survey.pic || "",
+        notes: survey.notes || "",
+        content: survey.content || "",
+        tags: initialTags,
+        is_premium: Boolean(survey.is_premium),
         file: null,
-        chart_type: "bar",
-        is_interactive: true,
+        chart_type: survey.chart_type || "bar",
+        is_interactive:
+            survey.is_interactive === 1 || survey.is_interactive === true,
     });
 
     const handleCategoryChange = (catId) => {
@@ -156,25 +159,27 @@ export default function SurveyInput({ auth }) {
             if (newTag && !tags.includes(newTag)) {
                 const updatedTags = [...tags, newTag];
                 setTags(updatedTags);
-                setData("tags", updatedTags.join(","));
+                setData("tags", updatedTags);
                 setCurrentTag("");
             }
         } else if (e.key === "Backspace" && !currentTag && tags.length > 0) {
             const updatedTags = tags.slice(0, -1);
             setTags(updatedTags);
-            setData("tags", updatedTags.join(","));
+            setData("tags", updatedTags);
         }
     };
 
     const removeTag = (tagToRemove) => {
         const updatedTags = tags.filter((tag) => tag !== tagToRemove);
         setTags(updatedTags);
-        setData("tags", updatedTags.join(","));
+        setData("tags", updatedTags);
     };
 
+    // SUBMIT MENGGUNAKAN 'PUT'
     const submit = (e) => {
         e.preventDefault();
-        post(route("surveys.import"), { onSuccess: () => reset() });
+        // Route update butuh ID
+        put(route("surveys.update", survey.id));
     };
 
     const POST_TYPES = [
@@ -200,26 +205,22 @@ export default function SurveyInput({ auth }) {
             user={auth.user}
             header={
                 <h2 className="font-semibold text-xl text-gray-800 leading-tight">
-                    Buat Postingan Baru
+                    Edit Postingan
                 </h2>
             }
         >
-            <Head title="Input Data" />
+            <Head title="Edit Data" />
 
             <div className="py-12">
                 <div className="max-w-6xl mx-auto sm:px-6 lg:px-8">
-                    {/* ALERT */}
-                    {flash.success && (
-                        <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center shadow-sm">
-                            <CheckCircle2 className="w-5 h-5 mr-2" />{" "}
-                            {flash.success}
-                        </div>
-                    )}
-                    {flash.error && (
-                        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg shadow-sm">
-                            {flash.error}
-                        </div>
-                    )}
+                    {/* Tombol Kembali */}
+                    <button
+                        onClick={() => window.history.back()}
+                        className="mb-6 flex items-center text-gray-500 hover:text-blue-600 transition-colors"
+                    >
+                        <ArrowLeft className="w-4 h-4 mr-2" /> Kembali ke
+                        Dashboard
+                    </button>
 
                     <form onSubmit={submit} className="space-y-8">
                         {/* 1. TIPE POSTINGAN */}
@@ -250,7 +251,6 @@ export default function SurveyInput({ auth }) {
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                            {/* KOLOM KIRI (LEBIH LEBAR) */}
                             <div className="lg:col-span-2 space-y-6">
                                 {/* A. IDENTITAS DATA */}
                                 <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
@@ -263,15 +263,11 @@ export default function SurveyInput({ auth }) {
                                         {/* JUDUL */}
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Judul Postingan{" "}
-                                                <span className="text-red-500">
-                                                    *
-                                                </span>
+                                                Judul Postingan
                                             </label>
                                             <input
                                                 type="text"
                                                 className="w-full rounded-lg border-gray-300 focus:ring-blue-500"
-                                                placeholder="Judul menarik..."
                                                 value={data.title}
                                                 onChange={(e) =>
                                                     setData(
@@ -290,10 +286,7 @@ export default function SurveyInput({ auth }) {
                                         {/* KATEGORI */}
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                Kategori{" "}
-                                                <span className="text-red-500">
-                                                    *
-                                                </span>
+                                                Kategori
                                             </label>
                                             <div className="flex flex-wrap gap-2">
                                                 {CATEGORIES.map((cat) => (
@@ -358,14 +351,13 @@ export default function SurveyInput({ auth }) {
                                             </div>
                                         )}
 
-                                        {/* --- REVISI: TAGS & PIC SEJAJAR (GRID) --- */}
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {/* INPUT TAGS */}
+                                            {/* TAGS */}
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    Tags (Topik)
+                                                    Tags
                                                 </label>
-                                                <div className="flex flex-wrap items-center gap-2 p-2 border border-gray-300 rounded-lg bg-white focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500 min-h-[42px]">
+                                                <div className="flex flex-wrap items-center gap-2 p-2 border border-gray-300 rounded-lg bg-white focus-within:ring-1 focus-within:ring-blue-500 min-h-[42px]">
                                                     <Tag className="w-4 h-4 text-gray-400 ml-1" />
                                                     {tags.map((tag, index) => (
                                                         <span
@@ -389,7 +381,7 @@ export default function SurveyInput({ auth }) {
                                                     <input
                                                         type="text"
                                                         className="flex-1 border-none focus:ring-0 text-sm min-w-[80px] p-0"
-                                                        placeholder="Ketik tag, koma..."
+                                                        placeholder="Tag..."
                                                         value={currentTag}
                                                         onChange={(e) =>
                                                             setCurrentTag(
@@ -402,20 +394,17 @@ export default function SurveyInput({ auth }) {
                                                     />
                                                 </div>
                                             </div>
-
-                                            {/* INPUT PIC (DIPINDAHKAN KESINI) */}
+                                            {/* PIC */}
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    Penanggung Jawab (PIC)
+                                                    PIC
                                                 </label>
                                                 <div className="relative">
-                                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                        <User className="h-4 w-4 text-gray-400" />
-                                                    </div>
+                                                    <User className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                                                     <input
                                                         type="text"
                                                         className="pl-9 w-full rounded-lg border-gray-300 focus:ring-blue-500"
-                                                        placeholder="Nama Instansi / Orang"
+                                                        placeholder="Nama Instansi"
                                                         value={data.pic}
                                                         onChange={(e) =>
                                                             setData(
@@ -427,71 +416,69 @@ export default function SurveyInput({ auth }) {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div>
-                                            <label className="text-xs font-semibold text-gray-600">
-                                                Catatan Teknis
-                                            </label>
-                                            <textarea
-                                                rows="3"
-                                                className="w-full text-sm rounded-lg border-gray-300 mt-1"
-                                                placeholder="Metodologi / Sumber..."
-                                                value={data.notes}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "notes",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            ></textarea>
-                                        </div>
+                                    </div>
+                                    <div className="mt-4">
+                                        <label className="text-xs font-semibold text-gray-600">
+                                            Catatan Teknis
+                                        </label>
+                                        <textarea
+                                            rows="3"
+                                            className="w-full text-sm rounded-lg border-gray-300 mt-1"
+                                            value={data.notes}
+                                            onChange={(e) =>
+                                                setData("notes", e.target.value)
+                                            }
+                                        ></textarea>
                                     </div>
                                 </div>
 
                                 {/* B. EDITOR ARTIKEL */}
                                 <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
                                     <h3 className="text-lg font-bold text-gray-900 mb-4">
-                                        Konten Artikel / Narasi
+                                        Konten Artikel
                                     </h3>
-                                    <div className="prose max-w-none">
-                                        <ReactQuill
-                                            theme="snow"
-                                            value={data.content}
-                                            onChange={(val) =>
-                                                setData("content", val)
-                                            }
-                                            className="h-64 mb-12"
-                                            placeholder="Tulis narasi lengkap di sini..."
-                                        />
-                                    </div>
+                                    <ReactQuill
+                                        theme="snow"
+                                        value={data.content}
+                                        onChange={(val) =>
+                                            setData("content", val)
+                                        }
+                                        className="h-64 mb-12"
+                                    />
                                 </div>
                             </div>
 
-                            {/* KOLOM KANAN (SIDEBAR) */}
                             <div className="space-y-6">
                                 {/* C. UPLOAD DATA */}
                                 {data.type !== "news" && (
                                     <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
                                         <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
                                             <UploadCloud className="w-5 h-5 mr-2 text-blue-600" />{" "}
-                                            Sumber Data
+                                            Update File
                                         </h3>
+
+                                        {/* Info File Lama */}
+                                        {survey.file_path && !data.file && (
+                                            <div className="mb-4 bg-green-50 border border-green-200 p-3 rounded text-xs text-green-700 flex items-center">
+                                                <CheckCircle2 className="w-4 h-4 mr-2" />
+                                                File tersimpan. Upload baru
+                                                untuk mengganti.
+                                            </div>
+                                        )}
+
                                         <label
-                                            className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-xl cursor-pointer hover:bg-gray-50 transition-colors ${data.file ? "border-blue-500 bg-blue-50" : "border-gray-300"}`}
+                                            className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer hover:bg-gray-50 transition-colors ${data.file ? "border-blue-500 bg-blue-50" : "border-gray-300"}`}
                                         >
                                             <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
                                                 {data.file ? (
-                                                    <>
-                                                        <FileText className="w-8 h-8 text-blue-600 mb-2" />
-                                                        <p className="text-sm font-semibold text-blue-700 truncate w-full">
-                                                            {data.file.name}
-                                                        </p>
-                                                    </>
+                                                    <p className="text-sm font-semibold text-blue-700 truncate w-full">
+                                                        {data.file.name}
+                                                    </p>
                                                 ) : (
                                                     <>
                                                         <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
                                                         <p className="text-xs text-gray-500">
-                                                            Klik atau Drag file
-                                                            Excel/CSV
+                                                            Klik ganti Excel/CSV
                                                         </p>
                                                     </>
                                                 )}
@@ -508,40 +495,10 @@ export default function SurveyInput({ auth }) {
                                                 accept=".xlsx,.xls,.csv"
                                             />
                                         </label>
-                                        {errors.file && (
-                                            <p className="text-red-500 text-xs mt-2">
-                                                {errors.file}
-                                            </p>
-                                        )}
-
-                                        <div className="mt-4 space-y-3">
-                                            {/* PERIODE TETAP DISINI ATAU MAU PINDAH JUGA? SEMENTARA DISINI BIAR RAPI */}
-                                            <div>
-                                                <label className="text-xs font-semibold text-gray-600">
-                                                    Periode Data
-                                                </label>
-                                                <div className="relative mt-1">
-                                                    <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                                                        <Calendar className="h-4 w-4 text-gray-400" />
-                                                    </div>
-                                                    <input
-                                                        type="month"
-                                                        className="pl-8 w-full text-sm rounded-lg border-gray-300"
-                                                        value={data.period}
-                                                        onChange={(e) =>
-                                                            setData(
-                                                                "period",
-                                                                e.target.value,
-                                                            )
-                                                        }
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
                                     </div>
                                 )}
 
-                                <div className="mt-4 bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                <div className="mt-6 bg-blue-50 p-4 rounded-lg border border-blue-100">
                                     <h4 className="text-sm font-bold text-blue-800 mb-3 flex items-center">
                                         <TrendingUp className="w-4 h-4 mr-2" />
                                         Visualisasi Data
@@ -606,7 +563,7 @@ export default function SurveyInput({ auth }) {
                                     </div>
                                 </div>
 
-                                {/* HANYA TAMPIL JIKA BUKAN KABAR TEPI (NEWS) */}
+                                {/* D. PREMIUM LOCK */}
                                 {data.type !== "news" && (
                                     <div
                                         className={`p-6 rounded-xl border shadow-sm transition-all ${data.is_premium ? "bg-amber-50 border-amber-200" : "bg-white border-gray-100"}`}
@@ -636,14 +593,9 @@ export default function SurveyInput({ auth }) {
                                                         }
                                                     />
                                                     <span className="font-bold text-gray-900">
-                                                        Kunci Data (Premium)
+                                                        Kunci Data
                                                     </span>
                                                 </label>
-                                                <p className="text-xs text-gray-500">
-                                                    {data.is_premium
-                                                        ? "Hanya subscriber yang bisa melihat detail grafik data."
-                                                        : "Data terbuka untuk umum (Gratis)."}
-                                                </p>
                                             </div>
                                         </div>
                                     </div>
@@ -660,7 +612,7 @@ export default function SurveyInput({ auth }) {
                                         <>
                                             {" "}
                                             <CheckCircle2 className="w-5 h-5" />{" "}
-                                            Publikasikan{" "}
+                                            Simpan Perubahan{" "}
                                         </>
                                     )}
                                 </button>

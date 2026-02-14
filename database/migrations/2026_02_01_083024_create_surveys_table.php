@@ -10,24 +10,31 @@ return new class extends Migration
     {
         Schema::create('surveys', function (Blueprint $table) {
             $table->id();
-            
-            // 1. Relasi ke User (Uploader)
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
 
-            // 2. Metadata Utama
-            $table->string('title');        // Judul Data
-            $table->string('category');     // Kategori (Umum, Ekonomi, dll)
-            $table->string('subcategory');  // Sub Kategori
-            $table->string('period');       // Periode Data (YYYY-MM)
-            $table->string('pic');          // Nama Penanggung Jawab (Sitasi)
-
-            // 3. Konten & Catatan (Struktur Baru Opsi A)
-            $table->text('notes')->nullable();    // CATATAN: Metodologi/Info Teknis (Mapping dari input 'Catatan')
-            $table->longText('content')->nullable(); // KONTEN: Artikel/Narasi Data (Untuk tampilan ala Databoks)
+            // 1. Tipe Postingan (PENTING: series, story, news)
+            $table->string('type')->default('series'); 
             
-            // 4. Tags & Data (Flexible Storage)
-            $table->json('tags')->nullable();     // TAGS: Label pencarian ["ekonomi", "inflasi"]
-            $table->json('csv_data')->nullable(); // DATA MENTAH: Isi CSV disimpan apa adanya
+            // 2. Metadata Utama
+            $table->string('title');
+            $table->string('category');
+            $table->string('subcategory');
+            $table->string('period')->nullable(); // Boleh null untuk 'News'
+            $table->string('pic')->nullable();    // Boleh null untuk 'News'
+
+            // 3. Status Data (Gembok Premium)
+            $table->boolean('is_premium')->default(false); 
+
+            
+            // 4. Konten & Catatan
+            $table->text('notes')->nullable();    
+            $table->longText('content')->nullable(); 
+            
+            // 5. Data Flexible
+            $table->json('tags')->nullable();     
+            $table->json('csv_data')->nullable(); // Bisa null jika tipe = news
+            $table->string('file_path')->nullable();
+            $table->string('image')->nullable();     // <--- INI YANG BIKIN ERROR BARUSAN
 
             $table->timestamps();
         });

@@ -8,6 +8,7 @@ use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule; 
+use Illuminate\Support\Facades\Storage; // Tambahkan ini buat hapus file lama
 
 class SurveyController extends Controller
 {
@@ -15,15 +16,13 @@ class SurveyController extends Controller
     {
         $query = Survey::query();
 
-        // 1. Filter Pencarian (Keyword)
         if ($request->has('q') && $request->q != '') {
             $query->where(function($q) use ($request) {
                 $q->where('title', 'like', '%' . $request->q . '%')
-                  ->orWhere('notes', 'like', '%' . $request->q . '%'); // GANTI notes JADI notes
+                  ->orWhere('notes', 'like', '%' . $request->q . '%');
             });
         }
 
-        // 2. Filter Kategori
         if ($request->has('category')) {
             $query->where('category', $request->category);
         }
@@ -39,54 +38,56 @@ class SurveyController extends Controller
 
     public function store(Request $request)
     {
-        // 1. Validasi Dinamis
         $request->validate([
             'type'        => 'required|in:series,story,news',
             'title'       => 'required|string|max:255',
             'category'    => 'required|string',
             'subcategory' => 'required|string',
-            'chart_type' => 'nullable|in:bar,line,pie', 
+            'chart_type'  => 'nullable|in:bar,line,pie', 
             'is_interactive' => 'boolean',
             'file'        => 'required_unless:type,news|nullable|mimes:xlsx,xls,csv|max:10240',
             'period'      => 'nullable|string',
             'pic'         => 'nullable|string',
-            'notes'         => 'nullable|string', // Notes
-            'content'     => 'nullable|string', // Artikel Rich Text
-            'tags'        => 'nullable|string', // Dikirim sebagai string "tag1, tag2"
+            'notes'       => 'nullable|string',
+            'content'     => 'nullable|string',
+            'tags'        => 'nullable|string',
             'is_premium'  => 'boolean',
         ]);
 
         DB::beginTransaction();
         try {
             $sheetData = [];
+            $filePath = null; // Siapkan variabel path
 
-            // 2. Proses File (Hanya jika ada file diupload)
+            // --- PERBAIKAN 1: SIMPAN PATH FILE ---
             if ($request->hasFile('file')) {
+                // Simpan fisik file
+                $filePath = $request->file('file')->store('surveys', 'public');
+                
+                // Baca isi data
                 $data = Excel::toArray([], $request->file('file'));
                 $sheetData = !empty($data) ? $data[0] : [];
             }
 
-            // 3. Proses Tags (Pecah String jadi Array JSON)
-            // Contoh: "ekonomi,  inflasi" -> ["ekonomi", "inflasi"]
-            $tagsArray = $request->tags 
-                ? array_map('trim', explode(',', $request->tags)) 
-                : [];
+            $tagsArray = $request->tags ? array_map('trim', explode(',', $request->tags)) : [];
 
-            // 4. Simpan ke Database
             Survey::create([
                 'user_id'     => auth()->id(),
                 'type'        => $request->type,
                 'title'       => $request->title,
                 'category'    => $request->category,
                 'subcategory' => $request->subcategory,
+                // Pastikan opsi grafik disimpan
+                'chart_type'  => $request->chart_type ?? 'bar', 
+                'is_interactive' => $request->is_interactive ?? true, 
                 'period'      => $request->period,
                 'pic'         => $request->pic,
                 'is_premium'  => $request->is_premium ?? false,
-                
                 'notes'       => $request->notes,
-                'content'     => $request->content, // HTML dari React Quill
+                'content'     => $request->content,
                 'tags'        => $tagsArray,
                 'csv_data'    => $sheetData,
+                'file_path'   => $filePath, // Masukkan path ke DB
             ]);
 
             DB::commit();
@@ -98,25 +99,16 @@ class SurveyController extends Controller
         }
     }
 
-    // HAPUS YANG LAMA: public function show($id)
-    // GANTI JADI INI:
     public function show(Survey $survey) 
     {
-        // HAPUS BARIS INI (KARENA KITA SUDAH PAKE BINDING DI ATAS):
-        // $survey = Survey::findOrFail($id); 
-
-        // --- Logic Views ---
         if (auth()->id() !== $survey->user_id) {
             $survey->increment('views');
         }
         
-        // --- Logic Chart (Tetap Sama) ---
         $chartData = [];
         $isLocked = $survey->is_premium && !auth()->check();
         
         if (!$isLocked && !empty($survey->csv_data) && is_array($survey->csv_data)) {
-             // ... (Logic CSV Boss yang panjang itu biarkan saja) ...
-             // Pastikan variable $survey->csv_data dipanggil dengan $survey (bukan variable lain)
              $firstRow = $survey->csv_data[0] ?? [];
              $keys = array_keys($firstRow);
              
@@ -134,56 +126,32 @@ class SurveyController extends Controller
         }
 
         return Inertia::render('Surveys/Show', [
-            'article' => $survey, // Pastikan namanya 'article' atau 'survey' sesuai yang diminta Frontend Show.jsx
+            'article' => $survey,
             'chartData' => $chartData
         ]);
     }
 
-    /**
-     * Menghapus data survey
-     */
     public function destroy($id)
     {
         $survey = Survey::findOrFail($id);
-        
-        // Pastikan yang menghapus adalah pemilik data (Security)
-        if ($survey->user_id !== auth()->id()) {
-            abort(403, 'Anda tidak berhak menghapus data ini.');
-        }
-
+        if ($survey->user_id !== auth()->id()) abort(403);
         $survey->delete();
-
         return redirect()->back()->with('success', 'Data berhasil dihapus.');
     }
-    /**
-     * 1. TAMPILKAN FORM EDIT
-     */
+
     public function edit($id)
     {
         $survey = Survey::findOrFail($id);
-
-        // Security Check
-        if ($survey->user_id !== auth()->id()) {
-            abort(403);
-        }
-
-        return Inertia::render('Surveys/Edit', [
-            'survey' => $survey
-        ]);
+        if ($survey->user_id !== auth()->id()) abort(403);
+        return Inertia::render('Surveys/Edit', ['survey' => $survey]);
     }
 
-    /**
-     * 2. PROSES SIMPAN PERUBAHAN
-     */
     public function update(Request $request, $id)
     {
         $survey = Survey::findOrFail($id);
         
-        if ($survey->user_id !== auth()->id()) {
-            abort(403);
-        }
+        if ($survey->user_id !== auth()->id()) abort(403);
 
-        // Validasi (File tidak wajib di-upload ulang)
         $validated = $request->validate([
             'type' => 'required',
             'chart_type' => 'nullable|in:bar,line,pie',
@@ -195,29 +163,35 @@ class SurveyController extends Controller
                 Rule::unique('surveys')->ignore($survey->id)
             ],
             'category' => 'required',
-            'subcategory' => 'nullable|string', // Pastikan ini ada
+            'subcategory' => 'nullable|string',
             'content' => 'nullable',
             'pic' => 'nullable|string',
             'notes' => 'nullable|string',
-            'tags' => 'nullable', // Bisa array atau string, nanti di-cast
+            'tags' => 'nullable',
             'is_premium' => 'boolean',
             'period' => 'nullable',
-            'file' => 'nullable|file|mimes:xlsx,xls,csv|max:2048', // File opsional saat edit
+            'file' => 'nullable|file|mimes:xlsx,xls,csv|max:2048',
         ]);
 
-        // Handle File Baru (Jika ada upload baru)
+        // Handle File Baru
         if ($request->hasFile('file')) {
-            // Hapus file lama jika mau hemat storage (Opsional)
-            // Storage::delete($survey->file_path);
+            // Hapus file lama (Opsional, agar server bersih)
+            if ($survey->file_path) {
+                Storage::disk('public')->delete($survey->file_path);
+            }
 
             $path = $request->file('file')->store('surveys', 'public');
-            $data = Excel::toArray([], $request->file('file')); // Baca isi excel baru
+            $data = Excel::toArray([], $request->file('file'));
             
-            $survey->file_path = $path;
-            $survey->csv_data = count($data) > 0 ? $data[0] : null;
+            $survey->file_path = $path; // Update Path
+            $survey->csv_data = count($data) > 0 ? $data[0] : null; // Update Isi Data
         }
 
-        // Update Field Lainnya
+        // --- PERBAIKAN 2: ASSIGNMENT KOLOM BARU (INI YANG TADI HILANG) ---
+        $survey->chart_type = $validated['chart_type'] ?? 'bar';
+        $survey->is_interactive = filter_var($validated['is_interactive'], FILTER_VALIDATE_BOOLEAN);
+        // ---------------------------------------------------------------
+
         $survey->type = $validated['type'];
         $survey->title = $validated['title'];
         $survey->category = $validated['category'];
@@ -228,9 +202,7 @@ class SurveyController extends Controller
         $survey->is_premium = filter_var($validated['is_premium'], FILTER_VALIDATE_BOOLEAN);
         $survey->period = $validated['period'];
 
-        // Handle Tags (Convert string "a,b,c" to Array)
         if (!empty($validated['tags'])) {
-             // Cek apakah tags datang sebagai array atau string
             if (is_array($validated['tags'])) {
                 $survey->tags = $validated['tags'];
             } else {
@@ -238,18 +210,15 @@ class SurveyController extends Controller
             }
         }
 
-        $survey->save();
+        $survey->save(); // Sekarang chart_type & is_interactive ikut tersimpan!
 
         return redirect()->route('dashboard')->with('success', 'Data berhasil diperbarui!');
     }
-    /**
-     * Halaman Khusus Kilas Data (Split View)
-     */
+
     public function kilasData(Request $request)
     {
         $query = Survey::where('type', 'series'); 
 
-        // Filter Kategori & Sub (Biarkan sama)
         if ($request->has('category')) {
             $query->where('category', $request->category);
         }
@@ -259,21 +228,16 @@ class SurveyController extends Controller
 
         $surveys = $query->latest()->paginate(20)->withQueryString();
 
-        // --- UPDATE BAGIAN INI (SEARCH LOGIC) ---
         $selectedData = null;
         $chartData = [];
         
-        // Cek: Apakah ada request 'slug' ATAU 'id'
         if ($request->has('slug') || $request->has('id')) {
-            
-            // Prioritaskan cari pakai Slug, kalau gak ada baru ID
             if ($request->has('slug')) {
                 $selectedData = Survey::where('slug', $request->slug)->first();
             } else {
                 $selectedData = Survey::find($request->id);
             }
             
-            // Logic Parser Grafik (Sama seperti sebelumnya)
             if ($selectedData && !$selectedData->is_premium && !empty($selectedData->csv_data)) {
                  $firstRow = $selectedData->csv_data[0] ?? [];
                  $keys = array_keys($firstRow);
@@ -289,7 +253,6 @@ class SurveyController extends Controller
                  }
             }
         }
-        // ----------------------------------------
 
         return Inertia::render('KilasData/Index', [
             'surveys' => $surveys,
@@ -298,23 +261,14 @@ class SurveyController extends Controller
             'chartData' => $chartData
         ]);
     }
-    /**
-     * Halaman Produk Standar (Fokus Utama & Kabar Tepi)
-     */
+
     public function produk($type)
     {
-        // Validasi tipe biar gak asal ketik URL
-        if (!in_array($type, ['story', 'news'])) {
-            abort(404);
-        }
+        if (!in_array($type, ['story', 'news'])) abort(404);
 
         $title = ($type === 'story') ? 'Fokus Utama' : 'Kabar Tepi';
-        
-        $surveys = Survey::where('type', $type)
-                    ->latest()
-                    ->paginate(9);
+        $surveys = Survey::where('type', $type)->latest()->paginate(9);
 
-        // Kita Reuse (Pakai Ulang) tampilan Index yang sudah ada
         return Inertia::render('Surveys/Index', [
             'surveys' => $surveys,
             'filters' => [],
@@ -322,13 +276,8 @@ class SurveyController extends Controller
         ]);
     }
 
-    /**
-     * Menampilkan Halaman Input Data Baru
-     */
     public function create()
     {
-        // Pastikan file-nya ada di resources/js/Pages/Surveys/Input.jsx
         return Inertia::render('Surveys/Input');
     }
 }
-

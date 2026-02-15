@@ -144,11 +144,21 @@ export default function Dashboard({ auth, surveys }) {
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center justify-center gap-3">
                                                             <a
-                                                                href={route(
-                                                                    "surveys.show",
-                                                                    item.slug ||
-                                                                        item.id,
-                                                                )}
+                                                                href={
+                                                                    item.type ===
+                                                                    "series"
+                                                                        ? route(
+                                                                              "kilas-data",
+                                                                              {
+                                                                                  id: item.id,
+                                                                              },
+                                                                          ) // JIKA Series -> Ke Link Khusus
+                                                                        : route(
+                                                                              "surveys.show",
+                                                                              item.slug ||
+                                                                                  item.id,
+                                                                          ) // SELAIN ITU -> Ke Link Biasa
+                                                                }
                                                                 target="_blank"
                                                                 className="text-blue-500 hover:text-blue-700 tooltip"
                                                                 title="Lihat"

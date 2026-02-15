@@ -21,9 +21,10 @@ class Survey extends Model
     ];
 
     protected $casts = [
+        'tags' => 'array',         
+        'csv_data' => 'array',     
+        'is_interactive' => 'boolean', 
         'is_premium' => 'boolean',
-        'tags' => 'array',
-        'csv_data' => 'array',
     ];
 
     /**

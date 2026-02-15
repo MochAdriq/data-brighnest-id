@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import PublicLayout from "@/Layouts/PublicLayout";
-import { Head, Link, router } from "@inertiajs/react";
+import { Head, Link, router, usePage } from "@inertiajs/react";
 import {
     ChevronRight,
     ChevronDown,
@@ -18,8 +18,11 @@ import {
     Title,
     Tooltip,
     Legend,
+    ArcElement,
+    PointElement,
+    LineElement,
 } from "chart.js";
-import { Bar } from "react-chartjs-2";
+import { Bar, Pie, Line } from "react-chartjs-2";
 
 ChartJS.register(
     CategoryScale,
@@ -28,7 +31,19 @@ ChartJS.register(
     Title,
     Tooltip,
     Legend,
+    ArcElement,
+    PointElement,
+    LineElement,
 );
+
+const chartColors = [
+    "rgba(54, 162, 235, 0.8)", // Biru
+    "rgba(255, 99, 132, 0.8)", // Merah
+    "rgba(255, 206, 86, 0.8)", // Kuning
+    "rgba(75, 192, 192, 0.8)", // Hijau Teal
+    "rgba(153, 102, 255, 0.8)", // Ungu
+    "rgba(255, 159, 64, 0.8)", // Orange
+];
 
 // --- KONFIGURASI MENU KATEGORI ---
 const CATEGORY_TREE = [
@@ -119,6 +134,141 @@ export default function KilasDataIndex({
     selectedData,
     chartData,
 }) {
+    const { auth } = usePage().props;
+
+    const renderChartContent = () => {
+        if (!selectedData || !chartData.labels) return null;
+
+        const chartType = selectedData.chart_type || "bar";
+        const isInteractive =
+            selectedData.is_interactive === 1 ||
+            selectedData.is_interactive === true;
+
+        // 1. JIKA TIPE TABEL (Biarkan logic tabel yang sudah benar)
+        if (chartType === "table") {
+            return (
+                <div className="w-full overflow-hidden border border-gray-200 rounded-xl bg-white shadow-sm flex flex-col h-[500px]">
+                    <div className="bg-blue-50 px-6 py-4 border-b border-blue-100 flex items-center justify-between shrink-0">
+                        <div className="flex items-center gap-2">
+                            <Database className="w-5 h-5 text-blue-600" />
+                            <h3 className="font-bold text-blue-800">
+                                Detail Data Lengkap
+                            </h3>
+                        </div>
+                        <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                            {selectedData.csv_data
+                                ? selectedData.csv_data.length
+                                : 0}{" "}
+                            Baris
+                        </span>
+                    </div>
+                    <div className="overflow-auto flex-1 custom-scrollbar w-full">
+                        <table className="w-full text-sm text-left text-gray-500 whitespace-nowrap relative">
+                            <thead className="text-xs text-gray-700 uppercase bg-gray-100 border-b sticky top-0 z-10 shadow-sm">
+                                <tr>
+                                    {selectedData.csv_data &&
+                                        selectedData.csv_data.length > 0 &&
+                                        Object.keys(
+                                            selectedData.csv_data[0],
+                                        ).map((header, i) => (
+                                            <th
+                                                key={i}
+                                                className="px-6 py-3 font-bold border-r border-gray-200 last:border-r-0"
+                                            >
+                                                {header}
+                                            </th>
+                                        ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {selectedData.csv_data &&
+                                    selectedData.csv_data.map((row, idx) => (
+                                        <tr
+                                            key={idx}
+                                            className="bg-white border-b hover:bg-gray-50"
+                                        >
+                                            {Object.values(row).map(
+                                                (val, vIdx) => (
+                                                    <td
+                                                        key={vIdx}
+                                                        className="px-6 py-3 border-r border-gray-100 last:border-r-0 font-mono"
+                                                    >
+                                                        {val}
+                                                    </td>
+                                                ),
+                                            )}
+                                        </tr>
+                                    ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        }
+
+        // 2. PERSIAPAN DATA GRAFIK (BAR/LINE/PIE)
+        const commonData = {
+            // FIX CRASH: Pastikan labels selalu berupa Array String
+            labels: chartData.labels.map((l) => String(l)),
+            datasets: [
+                {
+                    label: chartData.label,
+                    data: chartData.values,
+                    // Warna-warni jika Pie, Biru solid jika lainnya
+                    backgroundColor:
+                        chartType === "pie" ? chartColors : "#2563EB",
+                    borderColor: chartType === "line" ? "#2563EB" : undefined,
+                    // Hover color disable untuk pie biar gak aneh
+                    hoverBackgroundColor:
+                        chartType === "pie" ? undefined : "#1D4ED8",
+                    borderRadius: chartType === "bar" ? 4 : 0,
+                    borderWidth: chartType === "line" ? 2 : 0,
+                    tension: 0.3,
+                    fill: chartType === "line",
+                },
+            ],
+        };
+
+        const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    // Pindahkan legend ke kanan jika Pie biar rapi
+                    position: chartType === "pie" ? "right" : "top",
+                },
+                tooltip: { enabled: isInteractive },
+            },
+            hover: {
+                mode: isInteractive ? "nearest" : null,
+                intersect: isInteractive,
+            },
+            // FIX: Pie chart tidak boleh punya scales (Sumbu X/Y)
+            scales:
+                chartType === "pie"
+                    ? {}
+                    : {
+                          y: { beginAtZero: true },
+                          x: { display: true },
+                      },
+        };
+
+        // 3. RENDER SESUAI TIPE
+        return (
+            <div className="h-[400px] w-full relative flex items-center justify-center">
+                {chartType === "pie" && (
+                    <Pie data={commonData} options={commonOptions} />
+                )}
+                {chartType === "line" && (
+                    <Line data={commonData} options={commonOptions} />
+                )}
+                {chartType === "bar" && (
+                    <Bar data={commonData} options={commonOptions} />
+                )}
+            </div>
+        );
+    };
     const [openCategory, setOpenCategory] = useState(
         activeFilters.category || null,
     );
@@ -232,7 +382,6 @@ export default function KilasDataIndex({
                     {/* === AREA KANAN (KONTEN) === */}
                     <div className="w-full md:w-3/4 lg:w-4/5 bg-white min-h-[600px]">
                         {selectedData ? (
-                            // VIEW DETAIL GRAFIK
                             <div className="p-6 lg:p-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <button
                                     onClick={closeDetail}
@@ -242,6 +391,7 @@ export default function KilasDataIndex({
                                     Kembali ke Daftar
                                 </button>
 
+                                {/* HEADER (SELALU MUNCUL) */}
                                 <div className="mb-6 pb-6 border-b border-gray-100">
                                     <span className="text-xs font-bold text-blue-600 uppercase tracking-wider bg-blue-50 px-2 py-1 rounded">
                                         {selectedData.subcategory ||
@@ -265,76 +415,68 @@ export default function KilasDataIndex({
                                     </div>
                                 </div>
 
-                                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-8">
-                                    {selectedData.is_premium &&
-                                    !chartData.labels ? (
-                                        <div className="py-20 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                            <div className="bg-amber-100 p-4 rounded-full inline-flex mb-4">
-                                                <Lock className="w-8 h-8 text-amber-600" />
-                                            </div>
-                                            <h3 className="font-bold text-xl text-gray-900">
-                                                Akses Data Premium
-                                            </h3>
-                                            <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto">
-                                                Visualisasi data ini dikunci
-                                                khusus untuk pelanggan. Silakan
-                                                login atau berlangganan.
-                                            </p>
+                                {/* --- LOGIC LOCKDOWN --- */}
+                                {/* Cek: Premium DAN Tidak Login? */}
+                                {selectedData.is_premium &&
+                                (!auth || !auth.user) ? (
+                                    // TAMPILAN TERKUNCI (FULL)
+                                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-10 text-center">
+                                        <div className="bg-amber-100 p-4 rounded-full inline-flex mb-4">
+                                            <Lock className="w-8 h-8 text-amber-600" />
                                         </div>
-                                    ) : chartData.labels ? (
-                                        <div className="h-[400px] w-full relative">
-                                            <Bar
-                                                data={{
-                                                    labels: chartData.labels,
-                                                    datasets: [
-                                                        {
-                                                            label: chartData.label,
-                                                            data: chartData.values,
-                                                            backgroundColor:
-                                                                "#2563EB",
-                                                            hoverBackgroundColor:
-                                                                "#1D4ED8",
-                                                            borderRadius: 4,
-                                                        },
-                                                    ],
-                                                }}
-                                                options={{
-                                                    responsive: true,
-                                                    maintainAspectRatio: false,
-                                                    plugins: {
-                                                        legend: {
-                                                            position: "top",
-                                                        },
-                                                    },
-                                                    scales: {
-                                                        y: {
-                                                            beginAtZero: true,
-                                                        },
-                                                    },
+                                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                                            Akses Data Premium
+                                        </h3>
+                                        <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                                            Detail data, grafik, dan analisis
+                                            lengkap dikunci khusus untuk
+                                            pelanggan. Silakan login atau
+                                            berlangganan.
+                                        </p>
+                                        <div className="flex justify-center gap-3">
+                                            <a
+                                                href={route("login")}
+                                                className="bg-amber-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-amber-700 transition"
+                                            >
+                                                Login
+                                            </a>
+                                            <button className="bg-white text-amber-700 border border-amber-200 px-5 py-2 rounded-lg font-bold hover:bg-amber-50 transition">
+                                                Langganan
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    // TAMPILAN TERBUKA (JIKA LOGIN / GRATIS)
+                                    <>
+                                        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-8">
+                                            {chartData && chartData.labels ? (
+                                                renderChartContent()
+                                            ) : (
+                                                <div className="py-12 text-center text-gray-400 flex flex-col items-center">
+                                                    <BarChart3 className="w-12 h-12 mb-2 opacity-20" />
+                                                    <p>
+                                                        Data visual belum
+                                                        tersedia.
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="prose max-w-none text-gray-600 text-sm">
+                                            <h4 className="font-bold text-gray-900 text-lg mb-2">
+                                                Analisis Singkat
+                                            </h4>
+                                            <div
+                                                dangerouslySetInnerHTML={{
+                                                    __html:
+                                                        selectedData.content ||
+                                                        selectedData.notes ||
+                                                        "<p>Tidak ada keterangan tambahan.</p>",
                                                 }}
                                             />
                                         </div>
-                                    ) : (
-                                        <div className="py-12 text-center text-gray-400 flex flex-col items-center">
-                                            <BarChart3 className="w-12 h-12 mb-2 opacity-20" />
-                                            <p>Data visual belum tersedia.</p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="prose max-w-none text-gray-600 text-sm">
-                                    <h4 className="font-bold text-gray-900 text-lg mb-2">
-                                        Analisis Singkat
-                                    </h4>
-                                    <div
-                                        dangerouslySetInnerHTML={{
-                                            __html:
-                                                selectedData.content ||
-                                                selectedData.notes ||
-                                                "<p>Tidak ada keterangan tambahan.</p>",
-                                        }}
-                                    />
-                                </div>
+                                    </>
+                                )}
                             </div>
                         ) : (
                             // VIEW LIST DATA

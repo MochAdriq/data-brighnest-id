@@ -42,6 +42,23 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_google_only_users_can_not_login_with_password_form(): void
+    {
+        $user = User::factory()->create([
+            'google_id' => 'google-test-uid-001',
+            'google_only' => true,
+        ]);
+
+        $response = $this->from('/login')->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $response->assertRedirect('/login');
+        $response->assertSessionHasErrors('email');
+        $this->assertGuest();
+    }
+
     public function test_users_can_logout(): void
     {
         $user = User::factory()->create();

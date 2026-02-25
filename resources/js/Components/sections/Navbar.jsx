@@ -14,11 +14,9 @@ const Navbar = ({ user, categories = [] }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     // State untuk Dropdown
-    const [isTopicOpen, setIsTopicOpen] = useState(false);
     const [isUserOpen, setIsUserOpen] = useState(false);
 
     // Refs untuk Click Outside Close
-    const topicRef = useRef(null);
     const userRef = useRef(null);
 
     // 1. EFEK SCROLL (Biar Navbar berubah saat digulir)
@@ -33,9 +31,6 @@ const Navbar = ({ user, categories = [] }) => {
     // 2. LOGIC TUTUP MENU KALAU KLIK DI LUAR
     useEffect(() => {
         function handleClickOutside(event) {
-            if (topicRef.current && !topicRef.current.contains(event.target)) {
-                setIsTopicOpen(false);
-            }
             if (userRef.current && !userRef.current.contains(event.target)) {
                 setIsUserOpen(false);
             }
@@ -48,6 +43,18 @@ const Navbar = ({ user, categories = [] }) => {
     const handleLogout = () => {
         router.post(route("logout"));
     };
+
+    const userRoles = Array.isArray(user?.roles) ? user.roles : [];
+    const isSuperAdmin = userRoles.includes("super_admin");
+    const isPublisher = userRoles.includes("publisher");
+    const isEditor = userRoles.includes("editor");
+    const isMember = !isSuperAdmin && !isPublisher && !isEditor;
+
+    const dashboardLabel = isSuperAdmin
+        ? "Dashboard Super Admin"
+        : isPublisher
+          ? "Dashboard Publisher"
+          : "Dashboard Editor";
 
     return (
         <nav
@@ -73,13 +80,13 @@ const Navbar = ({ user, categories = [] }) => {
                                 e.target.style.display = "none";
                             }} // Fallback jika gambar gak ada
                         />
-                        <span className="text-xl font-extrabold tracking-tight leading-none text-blue-600 transition-colors">
+                        <span className="hidden sm:inline text-xl font-extrabold tracking-tight leading-none text-blue-600 transition-colors">
                             Data Brightnest
                         </span>
                     </Link>
 
                     {/* === TENGAH: MENU UTAMA (Desktop) === */}
-                    <div className="hidden md:flex items-center space-x-8 mr-8">
+                    <div className="hidden lg:flex items-center space-x-8 mr-8">
                         <Link
                             href="/"
                             className="text-sm font-semibold text-gray-600 hover:text-blue-600 transition-colors"
@@ -112,6 +119,15 @@ const Navbar = ({ user, categories = [] }) => {
                             Kabar Tepi
                         </Link>
 
+                        <Link
+                            href={route("surveys.index", {
+                                type: "publikasi_riset",
+                            })}
+                            className="text-sm font-semibold text-gray-600 hover:text-blue-600 transition-colors"
+                        >
+                            Publikasi Riset
+                        </Link>
+
                         {/* Dropdown Topik */}
                         {/* CONTOH BAGIAN DROPDOWN TOPIK DI NAVBAR */}
                         <div className="relative group">
@@ -122,49 +138,28 @@ const Navbar = ({ user, categories = [] }) => {
                             {/* Dropdown Menu */}
                             <div className="absolute left-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                                 <div className="py-2">
-                                    <Link
-                                        href="/category/ekonomi"
-                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                                    >
-                                        Ekonomi Makro
-                                    </Link>
-                                    <Link
-                                        href="/category/pemerintahan"
-                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                                    >
-                                        Pemerintahan
-                                    </Link>
-                                    <Link
-                                        href="/category/infrastruktur"
-                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                                    >
-                                        Infrastruktur
-                                    </Link>
-                                    <Link
-                                        href="/category/sosial"
-                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                                    >
-                                        Sosial & Kesra
-                                    </Link>
-                                    <Link
-                                        href="/category/pendidikan"
-                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                                    >
-                                        Pendidikan
-                                    </Link>
-                                    <Link
-                                        href="/category/bisnis"
-                                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                                    >
-                                        Bisnis & Industri
-                                    </Link>
+                                    {categories.length > 0 ? (
+                                        categories.map((cat) => (
+                                            <Link
+                                                key={cat.id}
+                                                href={`/category/${cat.slug}`}
+                                                className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                                            >
+                                                {cat.name}
+                                            </Link>
+                                        ))
+                                    ) : (
+                                        <span className="block px-4 py-2 text-xs italic text-gray-400">
+                                            Belum ada topik.
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     {/* === KANAN: AUTH / USER MENU === */}
-                    <div className="hidden md:flex items-center">
+                    <div className="hidden lg:flex items-center">
                         {user ? (
                             // JIKA SUDAH LOGIN
                             <div className="relative" ref={userRef}>
@@ -190,15 +185,35 @@ const Navbar = ({ user, categories = [] }) => {
                                             <p className="text-sm font-bold text-gray-900 truncate">
                                                 {user.email}
                                             </p>
+                                            <p className="text-[11px] uppercase tracking-wide text-blue-600 font-semibold mt-1">
+                                                {isSuperAdmin
+                                                    ? "super_admin"
+                                                    : isPublisher
+                                                      ? "publisher"
+                                                      : isEditor
+                                                        ? "editor"
+                                                        : "member"}
+                                            </p>
                                         </div>
 
-                                        <Link
-                                            href={route("dashboard")}
-                                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600"
-                                        >
-                                            <LayoutDashboard className="w-4 h-4 mr-2" />
-                                            Dashboard
-                                        </Link>
+                                        {!isMember && (
+                                            <Link
+                                                href={route("dashboard")}
+                                                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600"
+                                            >
+                                                <LayoutDashboard className="w-4 h-4 mr-2" />
+                                                {dashboardLabel}
+                                            </Link>
+                                        )}
+
+                                        {isMember && (
+                                            <Link
+                                                href={route("premium.purchase")}
+                                                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600"
+                                            >
+                                                Berlangganan
+                                            </Link>
+                                        )}
 
                                         <Link
                                             href={route("profile.edit")}
@@ -240,7 +255,7 @@ const Navbar = ({ user, categories = [] }) => {
                     </div>
 
                     {/* MOBILE MENU BUTTON */}
-                    <div className="md:hidden flex items-center">
+                    <div className="lg:hidden flex items-center">
                         <button
                             onClick={() =>
                                 setIsMobileMenuOpen(!isMobileMenuOpen)
@@ -255,29 +270,43 @@ const Navbar = ({ user, categories = [] }) => {
 
             {/* === MOBILE MENU DRAWER === */}
             {isMobileMenuOpen && (
-                <div className="md:hidden bg-white border-t border-gray-100 px-4 py-6 space-y-4 shadow-lg absolute w-full left-0">
+                <div className="lg:hidden bg-white border-t border-gray-100 px-4 py-6 space-y-4 shadow-lg absolute w-full left-0 max-h-[calc(100vh-64px)] overflow-y-auto">
                     <Link
                         href="/"
                         className="block text-base font-bold text-gray-700"
                     >
                         Beranda
                     </Link>
+                    <Link
+                        href={route("surveys.index", {
+                            type: "publikasi_riset",
+                        })}
+                        className="block text-base font-bold text-gray-700"
+                    >
+                        Publikasi Riset
+                    </Link>
 
                     <div>
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 block">
                             Topik
                         </span>
-                        <div className="grid grid-cols-2 gap-3 pl-2">
-                            {categories.map((cat) => (
-                                <Link
-                                    key={cat.id}
-                                    href={`/category/${cat.slug}`}
-                                    className="block text-sm text-gray-600 hover:text-blue-600"
-                                >
-                                    {cat.name}
-                                </Link>
-                            ))}
-                        </div>
+                        {categories.length > 0 ? (
+                            <div className="grid grid-cols-2 gap-3 pl-2">
+                                {categories.map((cat) => (
+                                    <Link
+                                        key={cat.id}
+                                        href={`/category/${cat.slug}`}
+                                        className="block text-sm text-gray-600 hover:text-blue-600"
+                                    >
+                                        {cat.name}
+                                    </Link>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-xs italic text-gray-400 pl-2">
+                                Belum ada topik.
+                            </p>
+                        )}
                     </div>
 
                     <div className="pt-4 border-t border-gray-100">
@@ -297,10 +326,10 @@ const Navbar = ({ user, categories = [] }) => {
                                     </div>
                                 </div>
                                 <Link
-                                    href={route("dashboard")}
+                                    href={isMember ? route("premium.purchase") : route("dashboard")}
                                     className="block py-2 text-sm font-medium text-gray-700"
                                 >
-                                    Dashboard
+                                    {isMember ? "Berlangganan" : dashboardLabel}
                                 </Link>
                                 <button
                                     onClick={handleLogout}

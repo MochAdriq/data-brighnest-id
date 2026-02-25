@@ -29,29 +29,57 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        // KATEGORI HARDCODED (Disamakan dengan Input.jsx)
-        // Nanti bisa diganti ambil dari database jika sudah ada tabel categories
-        $globalCategories = [
-            ['id' => 'umum', 'slug' => 'umum', 'name' => 'Umum'],
-            ['id' => 'pemerintahan', 'slug' => 'pemerintahan', 'name' => 'Pemerintahan'],
-            ['id' => 'infrastruktur', 'slug' => 'infrastruktur', 'name' => 'Infrastruktur'],
-            ['id' => 'ekonomi', 'slug' => 'ekonomi', 'name' => 'Ekonomi'],
-            ['id' => 'bisnis', 'slug' => 'bisnis', 'name' => 'Bisnis & Industri'],
-            ['id' => 'pendidikan', 'slug' => 'pendidikan', 'name' => 'Pendidikan'],
-            ['id' => 'sosial', 'slug' => 'sosial', 'name' => 'Sosial'],
-        ];
+        $categoryTree = collect(config('categories', []))
+            ->map(function ($item) {
+                return [
+                    'id' => $item['id'] ?? null,
+                    'slug' => $item['slug'] ?? ($item['id'] ?? null),
+                    'name' => $item['name'] ?? null,
+                    'subs' => array_values($item['subs'] ?? []),
+                ];
+            })
+            ->filter(fn ($item) => !empty($item['id']) && !empty($item['name']))
+            ->values()
+            ->all();
+
+        $globalCategories = array_map(function ($item) {
+            return [
+                'id' => $item['id'],
+                'slug' => $item['slug'],
+                'name' => $item['name'],
+            ];
+        }, $categoryTree);
 
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $request->user()
+                    ? [
+                        'id' => $request->user()->id,
+                        'name' => $request->user()->name,
+                        'email' => $request->user()->email,
+                        'avatar' => $request->user()->avatar,
+                        'bio' => $request->user()->bio,
+                        'location' => $request->user()->location,
+                        'website_url' => $request->user()->website_url,
+                        'preferred_categories' => $request->user()->preferred_categories,
+                        'notify_new_content' => (bool) $request->user()->notify_new_content,
+                        'notify_comment_replies' => (bool) $request->user()->notify_comment_replies,
+                        'notify_premium_status' => (bool) $request->user()->notify_premium_status,
+                        'locale' => $request->user()->locale ?? 'id',
+                        'timezone' => $request->user()->timezone ?? 'Asia/Jakarta',
+                        'roles' => $request->user()->getRoleNames()->values()->all(),
+                        'primary_role' => $request->user()->getRoleNames()->first(),
+                    ]
+                    : null,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
             ],
-            // TAMBAHAN PENTING UNTUK NAVBAR:
+            // Sumber kategori tunggal untuk seluruh frontend.
             'globalCategories' => $globalCategories,
+            'globalCategoryTree' => $categoryTree,
         ];
     }
 }

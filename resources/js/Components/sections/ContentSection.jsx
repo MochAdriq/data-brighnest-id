@@ -67,7 +67,7 @@ const ContentSection = ({ articles, popularArticles = [] }) => {
                 {/* === KOLOM KIRI: MAIN CONTENT (3 Kolom) === */}
                 <div className="lg:col-span-3">
                     {/* Header & Filter */}
-                    <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center mb-8 gap-4">
                         <h2 className="text-2xl font-bold text-slate-900">
                             Latest Data Insights
                         </h2>
@@ -76,7 +76,7 @@ const ContentSection = ({ articles, popularArticles = [] }) => {
                         <div className="relative">
                             <button
                                 onClick={() => setIsSortOpen(!isSortOpen)}
-                                className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-blue-500 hover:text-blue-600 bg-white transition-colors min-w-[140px] justify-between"
+                                className="w-full sm:w-auto flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-blue-500 hover:text-blue-600 bg-white transition-colors min-w-[140px] justify-between"
                             >
                                 <span>
                                     {sortOrder === "desc"
@@ -115,7 +115,7 @@ const ContentSection = ({ articles, popularArticles = [] }) => {
                     </div>
 
                     {/* Grid Kartu Data */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {sortedList.length > 0 ? (
                             sortedList.map((article) => (
                                 <DataCard

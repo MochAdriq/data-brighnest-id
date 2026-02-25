@@ -6,13 +6,18 @@ import { Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 export default function AuthenticatedLayout({ header, children }) {
-    const user = usePage().props.auth.user;
+    const { auth, flash } = usePage().props;
+    const user = auth.user;
+    const isSuperAdmin = user?.roles?.includes('super_admin');
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
 
+    const showAdminHeader = isSuperAdmin;
+
     return (
         <div className="min-h-screen bg-gray-100">
+            {showAdminHeader && (
             <nav className="border-b border-gray-100 bg-white">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex h-16 justify-between">
@@ -23,14 +28,40 @@ export default function AuthenticatedLayout({ header, children }) {
                                 </Link>
                             </div>
 
-                            <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                                <NavLink
-                                    href={route('dashboard')}
-                                    active={route().current('dashboard')}
-                                >
-                                    Dashboard
-                                </NavLink>
-                            </div>
+                    <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                        <NavLink
+                            href={route('dashboard')}
+                            active={route().current('dashboard')}
+                        >
+                            Dashboard
+                        </NavLink>
+                        {!isSuperAdmin && (
+                            <NavLink
+                                href={route('premium.purchase')}
+                                active={route().current('premium.purchase')}
+                            >
+                                Premium
+                            </NavLink>
+                        )}
+                        {isSuperAdmin && (
+                            <NavLink
+                                href={route('premium.admin.subscriptions')}
+                                active={route().current(
+                                    'premium.admin.subscriptions',
+                                )}
+                            >
+                                Verifikasi Premium
+                            </NavLink>
+                        )}
+                        {isSuperAdmin && (
+                            <NavLink
+                                href={route('admin.user-roles.index')}
+                                active={route().current('admin.user-roles.*')}
+                            >
+                                Role User
+                            </NavLink>
+                        )}
+                    </div>
                         </div>
 
                         <div className="hidden sm:ms-6 sm:flex sm:items-center">
@@ -134,6 +165,32 @@ export default function AuthenticatedLayout({ header, children }) {
                         >
                             Dashboard
                         </ResponsiveNavLink>
+                        {!isSuperAdmin && (
+                            <ResponsiveNavLink
+                                href={route('premium.purchase')}
+                                active={route().current('premium.purchase')}
+                            >
+                                Premium
+                            </ResponsiveNavLink>
+                        )}
+                        {isSuperAdmin && (
+                            <ResponsiveNavLink
+                                href={route('premium.admin.subscriptions')}
+                                active={route().current(
+                                    'premium.admin.subscriptions',
+                                )}
+                            >
+                                Verifikasi Premium
+                            </ResponsiveNavLink>
+                        )}
+                        {isSuperAdmin && (
+                            <ResponsiveNavLink
+                                href={route('admin.user-roles.index')}
+                                active={route().current('admin.user-roles.*')}
+                            >
+                                Role User
+                            </ResponsiveNavLink>
+                        )}
                     </div>
 
                     <div className="border-t border-gray-200 pb-1 pt-4">
@@ -161,13 +218,29 @@ export default function AuthenticatedLayout({ header, children }) {
                     </div>
                 </div>
             </nav>
+            )}
 
-            {header && (
+            {showAdminHeader && header && (
                 <header className="bg-white shadow">
                     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                         {header}
                     </div>
                 </header>
+            )}
+
+            {(flash?.success || flash?.error) && (
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-4">
+                    {flash?.success && (
+                        <div className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+                            {flash.success}
+                        </div>
+                    )}
+                    {flash?.error && (
+                        <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+                            {flash.error}
+                        </div>
+                    )}
+                </div>
             )}
 
             <main>{children}</main>

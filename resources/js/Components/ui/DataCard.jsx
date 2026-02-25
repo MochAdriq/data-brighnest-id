@@ -45,6 +45,11 @@ const DataCard = ({ item }) => {
                     label: "Kabar Tepi",
                     color: "bg-green-100 text-green-700 border-green-200",
                 };
+            case "publikasi_riset":
+                return {
+                    label: "Publikasi Riset",
+                    color: "bg-cyan-100 text-cyan-700 border-cyan-200",
+                };
             default:
                 return null;
         }

@@ -2,7 +2,7 @@ import React from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import SurveyForm from "@/Components/SurveyForm";
 
-export default function Input({ auth, survey }) {
+export default function Input({ auth, survey, existingAssets = null }) {
     return (
         <AuthenticatedLayout
             header={
@@ -11,7 +11,7 @@ export default function Input({ auth, survey }) {
                 </h2>
             }
         >
-            <SurveyForm survey={survey} />
+            <SurveyForm survey={survey} existingAssets={existingAssets} />
         </AuthenticatedLayout>
     );
 }

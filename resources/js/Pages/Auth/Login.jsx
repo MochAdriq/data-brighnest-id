@@ -1,100 +1,153 @@
-import Checkbox from '@/Components/Checkbox';
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
-import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import Checkbox from "@/Components/Checkbox";
+import InputError from "@/Components/InputError";
+import GuestLayout from "@/Layouts/GuestLayout";
+import { Head, Link, useForm } from "@inertiajs/react";
+
+function GoogleIcon() {
+    return (
+        <svg viewBox="0 0 48 48" className="h-5 w-5" aria-hidden="true">
+            <path
+                fill="#EA4335"
+                d="M24 9.5c3.8 0 7.3 1.4 10 3.8l7.5-7.5C36.8 1.8 30.8 0 24 0 14.6 0 6.4 5.4 2.4 13.3l8.8 6.8C13.2 13.7 18.2 9.5 24 9.5z"
+            />
+            <path
+                fill="#4285F4"
+                d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.8-2.1 5.2-4.5 6.8l8.1 6.3c4.8-4.4 7.6-10.9 7.6-17.6z"
+            />
+            <path
+                fill="#FBBC05"
+                d="M11.2 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.3.8-4.7l-8.8-6.8C.8 16.1 0 20 0 24s.8 7.9 2.4 11.5l8.8-6.8z"
+            />
+            <path
+                fill="#34A853"
+                d="M24 48c6.5 0 12-2.1 16-5.8l-8.1-6.3c-2.3 1.6-5.1 2.6-7.9 2.6-5.8 0-10.8-4.2-12.8-9.8l-8.8 6.8C6.4 42.6 14.6 48 24 48z"
+            />
+        </svg>
+    );
+}
 
 export default function Login({ status, canResetPassword }) {
     const { data, setData, post, processing, errors, reset } = useForm({
-        email: '',
-        password: '',
+        email: "",
+        password: "",
         remember: false,
     });
 
     const submit = (e) => {
         e.preventDefault();
-
-        post(route('login'), {
-            onFinish: () => reset('password'),
+        post(route("login"), {
+            onFinish: () => reset("password"),
         });
     };
 
     return (
         <GuestLayout>
-            <Head title="Log in" />
+            <Head title="Masuk" />
+
+            <div className="mb-5">
+                <h1 className="text-2xl font-extrabold text-white">Masuk Akun</h1>
+                <p className="mt-1 text-sm text-slate-300">
+                    Lanjutkan akses ke dashboard Brightnest.
+                </p>
+            </div>
 
             {status && (
-                <div className="mb-4 text-sm font-medium text-green-600">
+                <div className="mb-4 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
                     {status}
                 </div>
             )}
 
-            <form onSubmit={submit}>
-                <div>
-                    <InputLabel htmlFor="email" value="Email" />
+            <a
+                href={route("auth.google.redirect")}
+                className="mb-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300/20 bg-slate-800/70 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
+            >
+                <GoogleIcon />
+                Masuk dengan Google
+            </a>
 
-                    <TextInput
+            <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-slate-700" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-slate-900 px-2 text-slate-400">atau</span>
+                </div>
+            </div>
+
+            <form onSubmit={submit} className="space-y-4">
+                <div>
+                    <label htmlFor="email" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-300">
+                        Email
+                    </label>
+                    <input
                         id="email"
                         type="email"
                         name="email"
                         value={data.email}
-                        className="mt-1 block w-full"
+                        className="block w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                         autoComplete="username"
-                        isFocused={true}
-                        onChange={(e) => setData('email', e.target.value)}
+                        autoFocus
+                        onChange={(e) => setData("email", e.target.value)}
+                        placeholder="you@brightnest.id"
                     />
-
-                    <InputError message={errors.email} className="mt-2" />
+                    <InputError message={errors.email} className="mt-2 text-red-300" />
                 </div>
 
-                <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
-
-                    <TextInput
+                <div>
+                    <label htmlFor="password" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-300">
+                        Password
+                    </label>
+                    <input
                         id="password"
                         type="password"
                         name="password"
                         value={data.password}
-                        className="mt-1 block w-full"
+                        className="block w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                         autoComplete="current-password"
-                        onChange={(e) => setData('password', e.target.value)}
+                        onChange={(e) => setData("password", e.target.value)}
+                        placeholder="Masukkan password"
                     />
-
-                    <InputError message={errors.password} className="mt-2" />
+                    <InputError message={errors.password} className="mt-2 text-red-300" />
                 </div>
 
-                <div className="mt-4 block">
-                    <label className="flex items-center">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <label className="inline-flex items-center gap-2 text-sm text-slate-300">
                         <Checkbox
                             name="remember"
                             checked={data.remember}
-                            onChange={(e) =>
-                                setData('remember', e.target.checked)
-                            }
+                            onChange={(e) => setData("remember", e.target.checked)}
                         />
-                        <span className="ms-2 text-sm text-gray-600">
-                            Remember me
-                        </span>
+                        Ingat saya
                     </label>
-                </div>
 
-                <div className="mt-4 flex items-center justify-end">
                     {canResetPassword && (
                         <Link
-                            href={route('password.request')}
-                            className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                            href={route("password.request")}
+                            className="text-sm text-blue-300 underline underline-offset-2 hover:text-blue-200"
                         >
-                            Forgot your password?
+                            Lupa password?
                         </Link>
                     )}
-
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Log in
-                    </PrimaryButton>
                 </div>
+
+                <button
+                    type="submit"
+                    disabled={processing}
+                    className="inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-500 disabled:opacity-60"
+                >
+                    {processing ? "Memproses..." : "Masuk"}
+                </button>
             </form>
+
+            <p className="mt-5 text-center text-sm text-slate-300">
+                Belum punya akun?{" "}
+                <Link
+                    href={route("register")}
+                    className="font-semibold text-blue-300 underline underline-offset-2 hover:text-blue-200"
+                >
+                    Daftar sekarang
+                </Link>
+            </p>
         </GuestLayout>
     );
 }

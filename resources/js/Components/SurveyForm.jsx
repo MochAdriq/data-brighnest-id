@@ -1,259 +1,154 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
-import { useForm, Head } from "@inertiajs/react";
-import ReactQuill, { Quill } from "react-quill";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Head, useForm, usePage } from "@inertiajs/react";
+import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import Swal from "sweetalert2";
 import {
-    UploadCloud,
-    FileText,
-    User,
+    ArrowLeft,
     CheckCircle2,
-    Building2,
-    HardHat,
-    TrendingUp,
-    Factory,
-    GraduationCap,
-    HeartHandshake,
-    Globe,
-    Tag,
-    X,
+    Download,
+    FileImage,
+    FileSpreadsheet,
+    FileText,
     Lock,
     Unlock,
-    ArrowLeft,
+    Tag,
+    X,
 } from "lucide-react";
 import axios from "axios";
-
-const CATEGORIES = [
-    {
-        id: "umum",
-        label: "Umum",
-        icon: <Globe className="w-6 h-6" />,
-        color: "bg-gray-100 text-gray-600 border-gray-200",
-    },
-    {
-        id: "pemerintahan",
-        label: "Pemerintahan",
-        icon: <Building2 className="w-6 h-6" />,
-        color: "bg-blue-50 text-blue-600 border-blue-200",
-    },
-    {
-        id: "infrastruktur",
-        label: "Infrastruktur",
-        icon: <HardHat className="w-6 h-6" />,
-        color: "bg-orange-50 text-orange-600 border-orange-200",
-    },
-    {
-        id: "ekonomi",
-        label: "Ekonomi",
-        icon: <TrendingUp className="w-6 h-6" />,
-        color: "bg-green-50 text-green-600 border-green-200",
-    },
-    {
-        id: "bisnis",
-        label: "Bisnis",
-        icon: <Factory className="w-6 h-6" />,
-        color: "bg-indigo-50 text-indigo-600 border-indigo-200",
-    },
-    {
-        id: "pendidikan",
-        label: "Pendidikan",
-        icon: <GraduationCap className="w-6 h-6" />,
-        color: "bg-yellow-50 text-yellow-600 border-yellow-200",
-    },
-    {
-        id: "sosial",
-        label: "Sosial",
-        icon: <HeartHandshake className="w-6 h-6" />,
-        color: "bg-pink-50 text-pink-600 border-pink-200",
-    },
-];
-
-const SUB_CATEGORIES = {
-    umum: [
-        "Geografi & Wilayah",
-        "Demografi",
-        "Iklim",
-        "Kebencanaan",
-        "Lingkungan Hidup",
-    ],
-    pemerintahan: [
-        "Pemilu",
-        "Keuangan Negara",
-        "Birokrasi",
-        "Hukum",
-        "Hubungan Internasional",
-    ],
-    infrastruktur: [
-        "Transportasi",
-        "Energi",
-        "Telekomunikasi",
-        "Perumahan",
-        "Jalan & Jembatan",
-    ],
-    ekonomi: [
-        "PDB/PDRB",
-        "Inflasi",
-        "Ekspor-Impor",
-        "Keuangan",
-        "Investasi",
-        "UMKM",
-    ],
-    bisnis: [
-        "Pertanian",
-        "Manufaktur",
-        "Pariwisata",
-        "Pertambangan",
-        "Digital",
-        "Perdagangan",
-    ],
-    pendidikan: [
-        "Satuan Pendidikan",
-        "Peserta Didik",
-        "Tenaga Pendidik",
-        "Riset",
-        "Kurikulum",
-    ],
-    sosial: [
-        "Ketenagakerjaan",
-        "Kemiskinan",
-        "Kesehatan",
-        "IPM",
-        "Agama & Budaya",
-    ],
-};
 
 const POST_TYPES = [
     {
         id: "series",
         label: "Kilas Data",
-        desc: "Fokus pada angka & grafik cepat.",
+        desc: "Fokus data. Wajib file Excel/CSV.",
     },
     {
         id: "story",
         label: "Fokus Utama",
-        desc: "Narasi mendalam dengan data lengkap.",
+        desc: "Narasi mendalam. Wajib gambar utama.",
     },
     {
         id: "news",
         label: "Kabar Tepi",
-        desc: "Berita/Isu tanpa wajib upload data.",
+        desc: "Berita ringkas. Wajib gambar utama.",
+    },
+    {
+        id: "publikasi_riset",
+        label: "Publikasi Riset",
+        desc: "Pengantar singkat + file PDF publikasi.",
     },
 ];
 
-export default function SurveyForm({ survey = null }) {
-    console.log("DATA YANG DITERIMA DARI CONTROLLER:", survey);
-    const isEdit = !!survey;
-    const quillRef = useRef(null); // Ref untuk akses editor
+const SERIES_TEMPLATE_FILES = [
+    {
+        id: "line-xlsx",
+        label: "Template Grafik Garis (.xlsx)",
+        href: "/templates/chart-templates/grafik-garis-template.xlsx",
+    },
+    {
+        id: "bar-xlsx",
+        label: "Template Grafik Batang (.xlsx)",
+        href: "/templates/chart-templates/grafik-batang-template.xlsx",
+    },
+    {
+        id: "pie-xlsx",
+        label: "Template Grafik Pie (.xlsx)",
+        href: "/templates/chart-templates/grafik-pie-template.xlsx",
+    },
+    {
+        id: "line-csv",
+        label: "Template Grafik Garis (.csv)",
+        href: "/templates/chart-templates/grafik-garis-template.csv",
+    },
+    {
+        id: "bar-csv",
+        label: "Template Grafik Batang (.csv)",
+        href: "/templates/chart-templates/grafik-batang-template.csv",
+    },
+    {
+        id: "pie-csv",
+        label: "Template Grafik Pie (.csv)",
+        href: "/templates/chart-templates/grafik-pie-template.csv",
+    },
+];
 
-    // Setup Tags
+export default function SurveyForm({ survey = null, existingAssets = null }) {
+    const isEdit = Boolean(survey);
+    const quillRef = useRef(null);
+    const { globalCategoryTree = [] } = usePage().props;
+    const [isTemplateGuideOpen, setIsTemplateGuideOpen] = useState(false);
+
+    const categories = useMemo(
+        () =>
+            globalCategoryTree.map((cat) => ({
+                id: cat.id,
+                label: cat.name,
+            })),
+        [globalCategoryTree],
+    );
+    const subCategoryMap = useMemo(
+        () =>
+            globalCategoryTree.reduce((acc, cat) => {
+                acc[cat.id] = Array.isArray(cat.subs) ? cat.subs : [];
+                return acc;
+            }, {}),
+        [globalCategoryTree],
+    );
+
     const initialTags = isEdit && Array.isArray(survey.tags) ? survey.tags : [];
     const [tags, setTags] = useState(initialTags);
     const [currentTag, setCurrentTag] = useState("");
+    const [imagePreview, setImagePreview] = useState(
+        survey?.image ? `/storage/${survey.image}` : null,
+    );
 
     const { data, setData, post, processing, errors } = useForm({
         _method: isEdit ? "PUT" : "POST",
         type: survey?.type || "series",
         title: survey?.title || "",
+        pic: survey?.pic || "",
         category: survey?.category || "",
         subcategory: survey?.subcategory || "",
         period: survey?.period || "",
-        pic: survey?.pic || "",
         notes: survey?.notes || "",
+        lead: survey?.lead || "",
         content: survey?.content || "",
+        published_year: survey?.published_year || "",
+        research_topic: survey?.research_topic || "",
         tags: initialTags,
         is_premium: survey ? Boolean(survey.is_premium) : false,
+        chart_type: survey?.chart_type || "table",
+        is_interactive: survey ? Boolean(survey.is_interactive) : true,
         file: null,
-        chart_type: survey?.chart_type || "bar",
-        is_interactive: survey
-            ? survey.is_interactive === 1 || survey.is_interactive === true
-            : true,
+        image_file: null,
+        pdf_file: null,
+        image_caption: survey?.image_caption || "",
+        image_copyright: survey?.image_copyright || "",
     });
 
     useEffect(() => {
-        if (survey) {
-            setData({
-                type: survey.type || "series",
-                title: survey.title || "",
-                category: survey.category || "",
-                subcategory: survey.subcategory || "",
-                period: survey.period || "",
-                pic: survey.pic || "",
-                notes: survey.notes || "",
-                content: survey.content || "",
-                // Pastikan tags berupa array
-                tags: Array.isArray(survey.tags) ? survey.tags : [],
-                is_premium: Boolean(survey.is_premium),
-                file: null, // File selalu null saat awal edit (karena kita gak bisa set value input file)
-                chart_type: survey.chart_type || "bar",
-                is_interactive: Boolean(survey.is_interactive),
-            });
-            // Update state tags manual agar UI tags muncul
-            if (Array.isArray(survey.tags)) {
-                setTags(survey.tags);
-            }
-        }
-    }, [survey]);
-
-    useEffect(() => {
         if (Object.keys(errors).length > 0) {
-            // Ambil pesan error pertama saja biar rapi, atau gabung semua
             const firstError = Object.values(errors)[0];
-
             Swal.fire({
                 icon: "error",
-                title: "Gagal Disimpan!",
-                text: firstError, // Menampilkan pesan error spesifik (misal: "The file field is required")
+                title: "Validasi Gagal",
+                text: firstError,
                 toast: true,
-                position: "top-end", // Muncul di pojok kanan atas
+                position: "top-end",
                 showConfirmButton: false,
-                timer: 4000, // Hilang sendiri dalam 4 detik
+                timer: 4000,
                 timerProgressBar: true,
-                background: "#FEF2F2", // Warna background merah muda lembut
-                color: "#991B1B", // Warna teks merah tua
             });
         }
     }, [errors]);
 
-    // --- FITUR BARU: CUSTOM IMAGE HANDLER ---
-    const imageHandler = () => {
-        const input = document.createElement("input");
-        input.setAttribute("type", "file");
-        input.setAttribute("accept", "image/*");
-        input.click();
+    useEffect(() => {
+        if (data.type !== "series" && isTemplateGuideOpen) {
+            setIsTemplateGuideOpen(false);
+        }
+    }, [data.type, isTemplateGuideOpen]);
 
-        input.onchange = async () => {
-            const file = input.files[0];
-            if (file) {
-                const formData = new FormData();
-                formData.append("image", file);
-
-                try {
-                    // Upload ke MediaController yang baru kita buat
-                    const res = await axios.post(
-                        route("media.upload"),
-                        formData,
-                        {
-                            headers: { "Content-Type": "multipart/form-data" },
-                        },
-                    );
-
-                    // Jika sukses, ambil URL dan sisipkan ke editor
-                    const url = res.data.url;
-                    const quill = quillRef.current.getEditor();
-                    const range = quill.getSelection();
-                    quill.insertEmbed(range.index, "image", url);
-                } catch (err) {
-                    console.error("Upload Gagal:", err);
-                    alert(
-                        "Gagal mengupload gambar. Pastikan ukuran di bawah 2MB.",
-                    );
-                }
-            }
-        };
-    };
-
-    // --- SETUP MODULES QUILL ---
-    // Kita gunakan useMemo agar modul tidak dire-render setiap ketik (bikin focus hilang)
     const modules = useMemo(
         () => ({
             toolbar: {
@@ -262,21 +157,90 @@ export default function SurveyForm({ survey = null }) {
                     ["bold", "italic", "underline", "strike", "blockquote"],
                     [{ list: "ordered" }, { list: "bullet" }],
                     [{ indent: "-1" }, { indent: "+1" }],
-                    ["link", "image", "code-block"], // <--- Ada 'code-block' sesuai request Boss
+                    ["link", "image", "code-block"],
                     ["clean"],
                 ],
                 handlers: {
-                    // Override handler gambar bawaan dengan fungsi kita
-                    image: imageHandler,
+                    image: () => imageHandler(),
                 },
             },
         }),
         [],
     );
 
-    // --- LOGIC LAINNYA (Sama seperti sebelumnya) ---
+    const isSeries = data.type === "series";
+    const isResearchPublication = data.type === "publikasi_riset";
+    const existingFile = existingAssets?.file || null;
+    const existingImage = existingAssets?.image || null;
+    const existingPdf = existingAssets?.pdf || null;
+
+    const formatBytes = (bytes) => {
+        if (!bytes || Number.isNaN(Number(bytes))) return "-";
+        const value = Number(bytes);
+        if (value < 1024) return `${value} B`;
+        if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+        return `${(value / (1024 * 1024)).toFixed(2)} MB`;
+    };
+
+    const changeType = (nextType) => {
+        setData((current) => {
+            if (nextType === "series") {
+                return {
+                    ...current,
+                    type: nextType,
+                    file: current.file,
+                    image_file: null,
+                    pdf_file: null,
+                    published_year: "",
+                    research_topic: "",
+                    lead: "",
+                    content: "",
+                    image_caption: "",
+                    image_copyright: "",
+                    chart_type: current.chart_type || "table",
+                    is_interactive:
+                        current.is_interactive === undefined
+                            ? true
+                            : Boolean(current.is_interactive),
+                };
+            }
+
+            if (nextType === "publikasi_riset") {
+                return {
+                    ...current,
+                    type: nextType,
+                    file: null,
+                    image_file: null,
+                    period: "",
+                    notes: "",
+                    content: "",
+                    image_caption: "",
+                    image_copyright: "",
+                    chart_type: "bar",
+                    is_interactive: false,
+                };
+            }
+
+            return {
+                ...current,
+                type: nextType,
+                file: null,
+                pdf_file: null,
+                published_year: "",
+                research_topic: "",
+                chart_type: "bar",
+                is_interactive: false,
+                notes: "",
+            };
+        });
+
+        if (nextType === "series" || nextType === "publikasi_riset") {
+            setImagePreview(null);
+        }
+    };
+
     const handleCategoryChange = (catId) => {
-        setData((data) => ({ ...data, category: catId, subcategory: "" }));
+        setData((current) => ({ ...current, category: catId, subcategory: "" }));
     };
 
     const handleTagKeyDown = (e) => {
@@ -289,7 +253,10 @@ export default function SurveyForm({ survey = null }) {
                 setData("tags", updatedTags);
                 setCurrentTag("");
             }
-        } else if (e.key === "Backspace" && !currentTag && tags.length > 0) {
+            return;
+        }
+
+        if (e.key === "Backspace" && !currentTag && tags.length > 0) {
             const updatedTags = tags.slice(0, -1);
             setTags(updatedTags);
             setData("tags", updatedTags);
@@ -302,449 +269,645 @@ export default function SurveyForm({ survey = null }) {
         setData("tags", updatedTags);
     };
 
+    const imageHandler = () => {
+        const input = document.createElement("input");
+        input.setAttribute("type", "file");
+        input.setAttribute("accept", "image/*");
+        input.click();
+
+        input.onchange = async () => {
+            const file = input.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append("image", file);
+
+            try {
+                const res = await axios.post(route("media.upload"), formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+
+                const url = res.data.url;
+                const quill = quillRef.current.getEditor();
+                const range = quill.getSelection(true);
+                quill.insertEmbed(range.index, "image", url);
+            } catch {
+                Swal.fire("Upload gagal", "Ukuran maksimal 2MB.", "error");
+            }
+        };
+    };
+
     const submit = (e) => {
         e.preventDefault();
+
         if (isEdit) {
             post(route("surveys.update", survey.id));
-        } else {
-            post(route("surveys.store"));
+            return;
         }
+
+        post(route("surveys.store"));
     };
 
     return (
-        <div className="py-12">
+        <div className="py-8 sm:py-12">
             <Head title={isEdit ? "Edit Data" : "Input Data Baru"} />
 
-            <div className="max-w-6xl mx-auto sm:px-6 lg:px-8">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                 <button
                     onClick={() => window.history.back()}
-                    className="mb-6 flex items-center text-gray-500 hover:text-blue-600 transition-colors"
+                    className="mb-6 flex items-center text-gray-500 hover:text-blue-600"
+                    type="button"
                 >
                     <ArrowLeft className="w-4 h-4 mr-2" /> Kembali ke Dashboard
                 </button>
 
                 <form onSubmit={submit} className="space-y-8">
-                    {/* TIPE POSTINGAN */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
                         {POST_TYPES.map((type) => (
-                            <div
+                            <button
                                 key={type.id}
-                                // --- LOGIC BARU: CHANGE MANUAL ---
-                                onClick={() => {
-                                    // Kita update state secara manual di sini
-                                    setData((currentData) => ({
-                                        ...currentData,
-                                        type: type.id,
-                                        // Hanya ubah chart_type jika User KLIK tombol ini secara sadar
-                                        // Jika klik Kilas Data -> Table
-                                        // Jika klik Fokus Utama -> Bar
-                                        // Jika lainnya -> biarkan yang terakhir dipilih
-                                        chart_type:
-                                            type.id === "series"
-                                                ? "table"
-                                                : type.id === "story"
-                                                  ? "bar"
-                                                  : currentData.chart_type,
-                                    }));
-                                }}
-                                // ---------------------------------
-                                className={`cursor-pointer p-4 rounded-xl border-2 transition-all ${
+                                type="button"
+                                onClick={() => changeType(type.id)}
+                                className={`text-left p-3 sm:p-4 rounded-xl border-2 transition-all ${
                                     data.type === type.id
                                         ? "border-blue-500 bg-blue-50"
                                         : "border-gray-200 bg-white hover:border-blue-300"
                                 }`}
                             >
-                                {/* ... (Isi card biarkan sama: Icon, Label, Desc) ... */}
                                 <div className="flex items-center justify-between mb-2">
-                                    <span className="font-bold text-gray-800">
-                                        {type.label}
-                                    </span>
+                                    <span className="font-bold text-gray-800">{type.label}</span>
                                     {data.type === type.id && (
                                         <CheckCircle2 className="w-5 h-5 text-blue-600" />
                                     )}
                                 </div>
-                                <p className="text-xs text-gray-500">
-                                    {type.desc}
-                                </p>
-                            </div>
+                                <p className="text-xs text-gray-500">{type.desc}</p>
+                            </button>
                         ))}
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div className="lg:col-span-2 space-y-6">
-                            {/* IDENTITAS DATA */}
-                            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                                <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center border-b pb-4">
-                                    <FileText className="w-5 h-5 mr-2 text-blue-600" />{" "}
-                                    Identitas Utama
-                                </h3>
+                            <section className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm space-y-5">
+                                <h3 className="text-base sm:text-lg font-bold text-gray-900">Identitas Utama</h3>
 
-                                <div className="space-y-5">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Judul</label>
+                                    <input
+                                        type="text"
+                                        value={data.title}
+                                        onChange={(e) => setData("title", e.target.value)}
+                                        className="w-full rounded-lg border-gray-300 focus:ring-blue-500"
+                                        placeholder="Contoh: Tren Inflasi Kota X Triwulan I"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Judul Postingan
-                                        </label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Penulis</label>
                                         <input
                                             type="text"
+                                            value={data.pic}
+                                            onChange={(e) => setData("pic", e.target.value)}
                                             className="w-full rounded-lg border-gray-300 focus:ring-blue-500"
-                                            value={data.title}
-                                            onChange={(e) =>
-                                                setData("title", e.target.value)
-                                            }
+                                            placeholder="Nama penulis / instansi"
                                         />
-                                        {errors.title && (
-                                            <p className="text-red-500 text-xs mt-1">
-                                                {errors.title}
-                                            </p>
-                                        )}
                                     </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Kategori
-                                        </label>
-                                        <div className="flex flex-wrap gap-2">
-                                            {CATEGORIES.map((cat) => (
-                                                <button
-                                                    key={cat.id}
-                                                    type="button"
-                                                    onClick={() =>
-                                                        handleCategoryChange(
-                                                            cat.id,
-                                                        )
-                                                    }
-                                                    className={`px-3 py-2 rounded-lg text-xs font-medium border transition-all flex items-center gap-2 ${
-                                                        data.category === cat.id
-                                                            ? `ring-2 ring-blue-500 ${cat.color}`
-                                                            : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-                                                    }`}
-                                                >
-                                                    {data.category === cat.id &&
-                                                        cat.icon}
-                                                    {cat.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                        {errors.category && (
-                                            <p className="text-red-500 text-xs mt-1">
-                                                {errors.category}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    {data.category && (
-                                        <div className="bg-gray-50 p-4 rounded-lg">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Sub Topik
-                                            </label>
-                                            <select
+                                    {isSeries && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Periode Data</label>
+                                            <input
+                                                type="text"
+                                                value={data.period}
+                                                onChange={(e) => setData("period", e.target.value)}
                                                 className="w-full rounded-lg border-gray-300 focus:ring-blue-500"
-                                                value={data.subcategory}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "subcategory",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            >
-                                                <option value="">
-                                                    -- Pilih Sub Topik --
-                                                </option>
-                                                {SUB_CATEGORIES[
-                                                    data.category
-                                                ]?.map((sub, i) => (
-                                                    <option key={i} value={sub}>
-                                                        {sub}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                                placeholder="Contoh: 2020-2025"
+                                            />
                                         </div>
                                     )}
+                                    {isResearchPublication && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Tahun Publikasi</label>
+                                            <input
+                                                type="number"
+                                                min="1900"
+                                                max="2100"
+                                                value={data.published_year}
+                                                onChange={(e) => setData("published_year", e.target.value)}
+                                                className="w-full rounded-lg border-gray-300 focus:ring-blue-500"
+                                                placeholder="Contoh: 2026"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Tags
-                                            </label>
-                                            <div className="flex flex-wrap items-center gap-2 p-2 border border-gray-300 rounded-lg bg-white focus-within:ring-1 focus-within:ring-blue-500 min-h-[42px]">
-                                                <Tag className="w-4 h-4 text-gray-400 ml-1" />
-                                                {tags.map((tag, index) => (
-                                                    <span
-                                                        key={index}
-                                                        className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs flex items-center gap-1"
-                                                    >
-                                                        #{tag}
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                removeTag(tag)
-                                                            }
-                                                            className="hover:text-blue-900"
-                                                        >
-                                                            <X className="w-3 h-3" />
-                                                        </button>
-                                                    </span>
-                                                ))}
-                                                <input
-                                                    type="text"
-                                                    className="flex-1 border-none focus:ring-0 text-sm min-w-[80px] p-0"
-                                                    placeholder="Tag..."
-                                                    value={currentTag}
-                                                    onChange={(e) =>
-                                                        setCurrentTag(
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    onKeyDown={handleTagKeyDown}
-                                                />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                PIC
-                                            </label>
-                                            <div className="relative">
-                                                <User className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                                                <input
-                                                    type="text"
-                                                    className="pl-9 w-full rounded-lg border-gray-300 focus:ring-blue-500"
-                                                    placeholder="Nama Instansi"
-                                                    value={data.pic}
-                                                    onChange={(e) =>
-                                                        setData(
-                                                            "pic",
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                />
-                                            </div>
-                                        </div>
+                                {isResearchPublication && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Topik Riset</label>
+                                        <input
+                                            type="text"
+                                            value={data.research_topic}
+                                            onChange={(e) => setData("research_topic", e.target.value)}
+                                            className="w-full rounded-lg border-gray-300 focus:ring-blue-500"
+                                            placeholder="Contoh: Evaluasi Kinerja Pemprov Jawa Barat"
+                                        />
                                     </div>
+                                )}
 
-                                    <div className="mt-4">
-                                        <label className="text-xs font-semibold text-gray-600">
-                                            Catatan Teknis
-                                        </label>
-                                        <textarea
-                                            rows="3"
-                                            className="w-full text-sm rounded-lg border-gray-300 mt-1"
-                                            value={data.notes}
-                                            onChange={(e) =>
-                                                setData("notes", e.target.value)
-                                            }
-                                        ></textarea>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Kategori</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {categories.map((cat) => (
+                                            <button
+                                                key={cat.id}
+                                                type="button"
+                                                onClick={() => handleCategoryChange(cat.id)}
+                                                className={`px-3 py-2 rounded-lg text-xs font-medium border ${
+                                                    data.category === cat.id
+                                                        ? "ring-2 ring-blue-500 bg-blue-50 text-blue-700 border-blue-200"
+                                                        : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                                                }`}
+                                            >
+                                                {cat.label}
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* EDITOR ARTIKEL */}
-                            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                                <h3 className="text-lg font-bold text-gray-900 mb-4">
-                                    Konten Artikel
-                                </h3>
-                                <ReactQuill
-                                    ref={quillRef} // Pasang Ref disini
-                                    theme="snow"
-                                    value={data.content}
-                                    onChange={(val) => setData("content", val)}
-                                    modules={modules} // Pasang modul custom image handler
-                                    className="h-64 mb-12"
-                                />
-                            </div>
+                                {data.category && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Sub Topik</label>
+                                        <select
+                                            className="w-full rounded-lg border-gray-300 focus:ring-blue-500"
+                                            value={data.subcategory}
+                                            onChange={(e) => setData("subcategory", e.target.value)}
+                                        >
+                                            <option value="">-- Pilih Sub Topik --</option>
+                                            {subCategoryMap[data.category]?.map((sub) => (
+                                                <option key={sub} value={sub}>
+                                                    {sub}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+                                    <div className="flex flex-wrap items-center gap-2 p-2 border border-gray-300 rounded-lg bg-white min-h-[42px]">
+                                        <Tag className="w-4 h-4 text-gray-400 ml-1" />
+                                        {tags.map((tag) => (
+                                            <span
+                                                key={tag}
+                                                className="inline-flex items-center gap-1 px-2 py-1 rounded bg-blue-50 text-blue-700 text-xs"
+                                            >
+                                                #{tag}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeTag(tag)}
+                                                    className="text-blue-500 hover:text-blue-700"
+                                                >
+                                                    <X className="w-3 h-3" />
+                                                </button>
+                                            </span>
+                                        ))}
+                                        <input
+                                            type="text"
+                                            value={currentTag}
+                                            onChange={(e) => setCurrentTag(e.target.value)}
+                                            onKeyDown={handleTagKeyDown}
+                                            className="flex-1 min-w-[120px] border-0 focus:ring-0 text-sm"
+                                            placeholder="ketik tag lalu Enter"
+                                        />
+                                    </div>
+                                </div>
+                            </section>
+
+                            {!isSeries && !isResearchPublication && (
+                                <section className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm space-y-4">
+                                    <h3 className="text-lg font-bold text-gray-900">Lead dan Konten</h3>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Lead</label>
+                                        <textarea
+                                            rows="4"
+                                            value={data.lead}
+                                            onChange={(e) => setData("lead", e.target.value)}
+                                            className="w-full rounded-lg border-gray-300"
+                                            placeholder="Ringkasan pembuka artikel..."
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Konten</label>
+                                        <ReactQuill
+                                            ref={quillRef}
+                                            theme="snow"
+                                            value={data.content}
+                                            onChange={(val) => setData("content", val)}
+                                            modules={modules}
+                                            className="h-52 sm:h-64 mb-12"
+                                        />
+                                    </div>
+                                </section>
+                            )}
+
+                            {isResearchPublication && (
+                                <section className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm space-y-4">
+                                    <h3 className="text-lg font-bold text-gray-900">Pengantar Publikasi</h3>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Paragraf Pengantar</label>
+                                        <textarea
+                                            rows="6"
+                                            value={data.lead}
+                                            onChange={(e) => setData("lead", e.target.value)}
+                                            className="w-full rounded-lg border-gray-300"
+                                            placeholder="Tulis ringkasan utama publikasi riset."
+                                        />
+                                    </div>
+                                </section>
+                            )}
+
+                            {isSeries && (
+                                <section className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm space-y-4">
+                                    <h3 className="text-lg font-bold text-gray-900">Catatan Teknis Data</h3>
+                                    <textarea
+                                        rows="4"
+                                        value={data.notes}
+                                        onChange={(e) => setData("notes", e.target.value)}
+                                        className="w-full rounded-lg border-gray-300"
+                                        placeholder="Contoh: definisi indikator, sumber data, catatan metode."
+                                    />
+                                </section>
+                            )}
                         </div>
 
-                        {/* SIDEBAR KANAN */}
-                        <div className="space-y-6">
-                            {data.type !== "news" && (
-                                <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                                    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                                        <UploadCloud className="w-5 h-5 mr-2 text-blue-600" />{" "}
-                                        Update File
+                        <aside className="space-y-6">
+                            {isSeries ? (
+                                <section className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm space-y-4">
+                                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                        <FileSpreadsheet className="w-5 h-5 text-blue-600" />
+                                        File Data (Excel/CSV)
                                     </h3>
-                                    {isEdit &&
-                                        survey.file_path &&
-                                        !data.file && (
-                                            <div className="mb-4 bg-green-50 border border-green-200 p-3 rounded text-xs text-green-700 flex items-center">
-                                                <CheckCircle2 className="w-4 h-4 mr-2" />
-                                                File tersimpan. Upload baru
-                                                untuk mengganti.
-                                            </div>
-                                        )}
-                                    <label
-                                        className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer hover:bg-gray-50 transition-colors ${data.file ? "border-blue-500 bg-blue-50" : "border-gray-300"}`}
-                                    >
-                                        <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
-                                            {data.file ? (
-                                                <p className="text-sm font-semibold text-blue-700 truncate w-full">
-                                                    {data.file.name}
-                                                </p>
-                                            ) : (
+
+                                    <div className="rounded-lg border border-blue-100 bg-blue-50/60 p-3 space-y-3">
+                                        <p className="text-sm font-semibold text-blue-900">
+                                            Download Template Kilas Data
+                                        </p>
+                                        <p className="text-xs text-blue-800">
+                                            Gunakan kolom A = Label dan kolom B =
+                                            Nilai (angka), tanpa header.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsTemplateGuideOpen(true)}
+                                            className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs sm:text-sm font-semibold text-blue-700 hover:bg-blue-100 transition-colors"
+                                        >
+                                            Lihat Panduan Format
+                                        </button>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {SERIES_TEMPLATE_FILES.map((item) => (
+                                                <a
+                                                    key={item.id}
+                                                    href={item.href}
+                                                    download
+                                                    className="inline-flex items-center justify-between gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-blue-700 hover:bg-blue-100 transition-colors"
+                                                >
+                                                    <span>{item.label}</span>
+                                                    <Download className="w-4 h-4 shrink-0" />
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {isEdit && (
+                                        <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-900 space-y-2">
+                                            <p className="font-semibold">
+                                                Upload ulang file bersifat opsional.
+                                            </p>
+                                            {existingFile ? (
                                                 <>
-                                                    <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
-                                                    <p className="text-xs text-gray-500">
-                                                        Klik ganti Excel/CSV
+                                                    <p>
+                                                        File saat ini:{" "}
+                                                        <span className="font-bold">
+                                                            {existingFile.name}
+                                                        </span>
                                                     </p>
+                                                    <p>
+                                                        Format:{" "}
+                                                        <span className="uppercase font-semibold">
+                                                            {existingFile.extension || "-"}
+                                                        </span>{" "}
+                                                        • Ukuran:{" "}
+                                                        <span className="font-semibold">
+                                                            {formatBytes(existingFile.size_bytes)}
+                                                        </span>
+                                                    </p>
+                                                    {existingFile.url && (
+                                                        <a
+                                                            href={existingFile.url}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="inline-flex font-semibold underline"
+                                                        >
+                                                            Lihat file lama
+                                                        </a>
+                                                    )}
                                                 </>
+                                            ) : (
+                                                <p className="text-amber-700">
+                                                    Belum ada file lama tersimpan.
+                                                </p>
                                             )}
+                                        </div>
+                                    )}
+                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer hover:bg-gray-50">
+                                        <div className="text-center px-4">
+                                            <p className="text-sm font-semibold text-gray-700">
+                                                {data.file
+                                                    ? data.file.name
+                                                    : "Klik untuk upload file .xlsx/.xls/.csv"}
+                                            </p>
                                         </div>
                                         <input
                                             type="file"
                                             className="hidden"
-                                            onChange={(e) =>
-                                                setData(
-                                                    "file",
-                                                    e.target.files[0],
-                                                )
-                                            }
                                             accept=".xlsx,.xls,.csv"
+                                            onChange={(e) => setData("file", e.target.files[0])}
                                         />
                                     </label>
-                                </div>
-                            )}
 
-                            {(data.file || (isEdit && survey?.file_path)) && (
-                                <div className="mt-6 bg-blue-50 p-4 rounded-lg border border-blue-100 transition-all duration-300">
-                                    {isEdit &&
-                                        survey?.file_path &&
-                                        !data.file && (
-                                            <div className="mb-4 bg-gray-50 border border-gray-200 p-3 rounded-lg flex items-center gap-3">
-                                                {/* Icon File */}
-                                                <div className="bg-white p-2 rounded-md border border-gray-100 shadow-sm">
-                                                    <FileText className="w-5 h-5 text-blue-600" />
-                                                </div>
-
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-0.5">
-                                                        Current File:
-                                                    </p>
-                                                    {/* Nama File (Diambil dari path, dibuang nama foldernya) */}
-                                                    <p
-                                                        className="text-sm font-medium text-gray-800 truncate font-mono"
-                                                        title={survey.file_path}
-                                                    >
-                                                        {survey.file_path
-                                                            .split("/")
-                                                            .pop()}
-                                                    </p>
-                                                </div>
-
-                                                {/* Indikator Centang */}
-                                                <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
-                                            </div>
-                                        )}
-                                    <h4 className="text-sm font-bold text-blue-800 mb-3 flex items-center">
-                                        <TrendingUp className="w-4 h-4 mr-2" />{" "}
-                                        Visualisasi Data
-                                    </h4>
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-700 mb-1">
-                                                Bentuk Grafik
-                                            </label>
-                                            <select
-                                                value={data.chart_type}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "chart_type",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                className="w-full text-sm rounded-lg border-gray-300 focus:ring-blue-500"
-                                            >
-                                                <option value="table">
-                                                    Tabel Data (Table View)
-                                                </option>
-                                                <option value="bar">
-                                                    Grafik Batang (Bar Chart)
-                                                </option>
-                                                <option value="line">
-                                                    Grafik Garis (Line Chart)
-                                                </option>
-                                                <option value="pie">
-                                                    Grafik Lingkaran (Pie Chart)
-                                                </option>
-                                            </select>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <label className="text-xs font-medium text-gray-700">
-                                                Mode Interaktif
-                                            </label>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    className="sr-only peer"
-                                                    checked={
-                                                        data.is_interactive
-                                                    }
-                                                    onChange={(e) =>
-                                                        setData(
-                                                            "is_interactive",
-                                                            e.target.checked,
-                                                        )
-                                                    }
-                                                />
-                                                <div className="w-9 h-5 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                                            </label>
-                                        </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">Bentuk Grafik</label>
+                                        <select
+                                            value={data.chart_type}
+                                            onChange={(e) => setData("chart_type", e.target.value)}
+                                            className="w-full text-sm rounded-lg border-gray-300"
+                                        >
+                                            <option value="table">Tabel Data</option>
+                                            <option value="bar">Bar Chart</option>
+                                            <option value="line">Line Chart</option>
+                                            <option value="pie">Pie Chart</option>
+                                        </select>
                                     </div>
-                                </div>
-                            )}
 
-                            {data.type !== "news" && (
-                                <div
-                                    className={`p-6 rounded-xl border shadow-sm transition-all ${data.is_premium ? "bg-amber-50 border-amber-200" : "bg-white border-gray-100"}`}
-                                >
-                                    <div className="flex items-start gap-3">
-                                        <div className="pt-1">
-                                            {data.is_premium ? (
-                                                <Lock className="w-6 h-6 text-amber-600" />
+                                    <label className="flex items-center justify-between text-sm text-gray-700">
+                                        <span>Mode Interaktif</span>
+                                        <input
+                                            type="checkbox"
+                                            checked={Boolean(data.is_interactive)}
+                                            onChange={(e) => setData("is_interactive", e.target.checked)}
+                                            className="rounded"
+                                        />
+                                    </label>
+                                </section>
+                            ) : isResearchPublication ? (
+                                <section className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm space-y-4">
+                                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                        <FileText className="w-5 h-5 text-blue-600" />
+                                        File Publikasi (PDF)
+                                    </h3>
+
+                                    <div className="rounded-lg border border-blue-100 bg-blue-50/70 p-3 text-xs text-blue-900 space-y-2">
+                                        <p className="font-semibold">File publikasi disimpan di storage private.</p>
+                                        <p>Pengunjung hanya bisa mengakses file setelah lolos aturan akses premium.</p>
+                                    </div>
+
+                                    {isEdit && (
+                                        <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-900 space-y-2">
+                                            <p className="font-semibold">
+                                                Upload ulang PDF bersifat opsional.
+                                            </p>
+                                            {existingPdf ? (
+                                                <>
+                                                    <p>
+                                                        File saat ini:{" "}
+                                                        <span className="font-bold">
+                                                            {existingPdf.name}
+                                                        </span>
+                                                    </p>
+                                                    <p>
+                                                        Format:{" "}
+                                                        <span className="uppercase font-semibold">
+                                                            {existingPdf.extension || "-"}
+                                                        </span>{" "}
+                                                        • Ukuran:{" "}
+                                                        <span className="font-semibold">
+                                                            {formatBytes(existingPdf.size_bytes)}
+                                                        </span>
+                                                    </p>
+                                                </>
                                             ) : (
-                                                <Unlock className="w-6 h-6 text-gray-400" />
+                                                <p className="text-amber-700">
+                                                    Belum ada PDF lama tersimpan.
+                                                </p>
                                             )}
                                         </div>
-                                        <div className="flex-1">
-                                            <label className="flex items-center space-x-2 cursor-pointer mb-1">
-                                                <input
-                                                    type="checkbox"
-                                                    className="rounded text-amber-600 focus:ring-amber-500 w-5 h-5"
-                                                    checked={data.is_premium}
-                                                    onChange={(e) =>
-                                                        setData(
-                                                            "is_premium",
-                                                            e.target.checked,
-                                                        )
-                                                    }
-                                                />
-                                                <span className="font-bold text-gray-900">
-                                                    Kunci Data
-                                                </span>
-                                            </label>
+                                    )}
+
+                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer hover:bg-gray-50">
+                                        <div className="text-center px-4">
+                                            <p className="text-sm font-semibold text-gray-700">
+                                                {data.pdf_file
+                                                    ? data.pdf_file.name
+                                                    : "Klik untuk upload file .pdf"}
+                                            </p>
                                         </div>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept=".pdf,application/pdf"
+                                            onChange={(e) => setData("pdf_file", e.target.files[0])}
+                                        />
+                                    </label>
+                                </section>
+                            ) : (
+                                <section className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm space-y-4">
+                                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                        <FileImage className="w-5 h-5 text-blue-600" />
+                                        Gambar Utama
+                                    </h3>
+                                    {isEdit && (
+                                        <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-900 space-y-2">
+                                            <p className="font-semibold">
+                                                Upload ulang gambar bersifat opsional.
+                                            </p>
+                                            {existingImage ? (
+                                                <>
+                                                    <p>
+                                                        Gambar saat ini:{" "}
+                                                        <span className="font-bold">
+                                                            {existingImage.name}
+                                                        </span>
+                                                    </p>
+                                                    <p>
+                                                        Format:{" "}
+                                                        <span className="uppercase font-semibold">
+                                                            {existingImage.extension || "-"}
+                                                        </span>{" "}
+                                                        • Ukuran:{" "}
+                                                        <span className="font-semibold">
+                                                            {formatBytes(existingImage.size_bytes)}
+                                                        </span>
+                                                    </p>
+                                                </>
+                                            ) : (
+                                                <p className="text-amber-700">
+                                                    Belum ada gambar lama tersimpan.
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {imagePreview && (
+                                        <img
+                                            src={imagePreview}
+                                            alt="Preview"
+                                            className="w-full h-44 object-cover rounded-lg border border-gray-200"
+                                        />
+                                    )}
+
+                                    <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl cursor-pointer hover:bg-gray-50">
+                                        <p className="text-sm font-semibold text-gray-700 px-4 text-center">
+                                            {data.image_file
+                                                ? data.image_file.name
+                                                : "Klik untuk upload gambar utama (jpg/png/webp)"}
+                                        </p>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept="image/jpeg,image/png,image/jpg,image/webp"
+                                            onChange={(e) => {
+                                                const file = e.target.files[0];
+                                                setData("image_file", file);
+                                                if (file) {
+                                                    setImagePreview(URL.createObjectURL(file));
+                                                }
+                                            }}
+                                        />
+                                    </label>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Caption Gambar</label>
+                                        <input
+                                            type="text"
+                                            value={data.image_caption}
+                                            onChange={(e) => setData("image_caption", e.target.value)}
+                                            className="w-full rounded-lg border-gray-300"
+                                            placeholder="Contoh: Aktivitas pasar tradisional di Kota X"
+                                        />
                                     </div>
-                                </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Copyright</label>
+                                        <input
+                                            type="text"
+                                            value={data.image_copyright}
+                                            onChange={(e) => setData("image_copyright", e.target.value)}
+                                            className="w-full rounded-lg border-gray-300"
+                                            placeholder="Contoh: Foto: BrightNest / BPS"
+                                        />
+                                    </div>
+                                </section>
                             )}
+
+                            <section
+                                className={`p-6 rounded-xl border shadow-sm ${
+                                    data.is_premium
+                                        ? "bg-amber-50 border-amber-200"
+                                        : "bg-white border-gray-100"
+                                }`}
+                            >
+                                <label className="flex items-center justify-between cursor-pointer">
+                                    <span className="font-bold text-gray-900 flex items-center gap-2">
+                                        {data.is_premium ? (
+                                            <Lock className="w-5 h-5 text-amber-600" />
+                                        ) : (
+                                            <Unlock className="w-5 h-5 text-gray-400" />
+                                        )}
+                                        Kunci Premium
+                                    </span>
+                                    <input
+                                        type="checkbox"
+                                        checked={data.is_premium}
+                                        onChange={(e) => setData("is_premium", e.target.checked)}
+                                        className="rounded"
+                                    />
+                                </label>
+                            </section>
 
                             <button
                                 type="submit"
                                 disabled={processing}
-                                className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3.5 sm:py-4 rounded-xl disabled:opacity-50"
                             >
-                                {processing ? (
-                                    "Menyimpan..."
-                                ) : (
-                                    <>
-                                        {" "}
-                                        <CheckCircle2 className="w-5 h-5" />{" "}
-                                        {isEdit
-                                            ? "Simpan Perubahan"
-                                            : "Publikasikan Data"}{" "}
-                                    </>
-                                )}
+                                {processing
+                                    ? "Menyimpan..."
+                                    : isEdit
+                                      ? "Simpan Perubahan"
+                                      : "Publikasikan"}
                             </button>
-                        </div>
+                        </aside>
                     </div>
                 </form>
             </div>
+
+            {isTemplateGuideOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <button
+                        type="button"
+                        onClick={() => setIsTemplateGuideOpen(false)}
+                        className="absolute inset-0 bg-black/50"
+                        aria-label="Tutup panduan format"
+                    />
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        className="relative z-10 w-full max-w-xl rounded-2xl border border-gray-200 bg-white shadow-2xl"
+                    >
+                        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+                            <h4 className="text-base sm:text-lg font-bold text-gray-900">
+                                Panduan Format Excel/CSV Kilas Data
+                            </h4>
+                            <button
+                                type="button"
+                                onClick={() => setIsTemplateGuideOpen(false)}
+                                className="rounded-lg border border-gray-200 px-2 py-1 text-sm text-gray-600 hover:bg-gray-50"
+                            >
+                                Tutup
+                            </button>
+                        </div>
+
+                        <div className="px-5 py-4 space-y-4 text-sm text-gray-700">
+                            <div className="rounded-lg border border-blue-100 bg-blue-50 p-3">
+                                <p className="font-semibold text-blue-900 mb-1">
+                                    Format minimal yang dibaca sistem:
+                                </p>
+                                <p>Kolom A = Label</p>
+                                <p>Kolom B = Nilai (angka)</p>
+                            </div>
+
+                            <div>
+                                <p className="font-semibold text-gray-900 mb-2">
+                                    Aturan penting
+                                </p>
+                                <ul className="list-disc pl-5 space-y-1">
+                                    <li>Hanya sheet pertama yang dibaca.</li>
+                                    <li>Gunakan 2 kolom pertama (A dan B).</li>
+                                    <li>Jangan pakai header di baris pertama.</li>
+                                    <li>Jangan merge cell.</li>
+                                    <li>Hindari baris kosong di tengah data.</li>
+                                    <li>Pastikan kolom nilai berisi angka.</li>
+                                </ul>
+                            </div>
+
+                            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-800">
+                                Tips: jika angka memakai pemisah ribuan/desimal lokal
+                                dan terbaca salah, simpan sebagai angka murni dulu.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
+

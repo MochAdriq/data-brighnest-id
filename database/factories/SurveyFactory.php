@@ -29,9 +29,12 @@ class SurveyFactory extends Factory
             'slug' => Str::slug($title), // Otomatis bikin slug
             'category' => $this->faker->randomElement(['Ekonomi', 'Pendidikan', 'Kesehatan', 'Infrastruktur', 'Sosial', 'Pemerintahan']),
             'subcategory' => $this->faker->word(),
+            'published_year' => null,
+            'research_topic' => null,
             
             // PENTING: Pakai 'notes', bukan 'description'
             'notes' => $this->faker->paragraph(2), 
+            'lead' => $this->faker->paragraph(1),
             
             'content' => '<p>' . implode('</p><p>', $this->faker->paragraphs(8)) . '</p>', // Artikel panjang dummy
             'period' => '2024-2025',
@@ -43,7 +46,11 @@ class SurveyFactory extends Factory
             // Data Grafik Dummy
             'csv_data' => $dummyCsvData, 
             'file_path' => null, // Kosongin aja
+            'pdf_path' => null,
             'image' => null, // Kosongin biar pake gambar default grafik
+            'image_caption' => null,
+            'image_copyright' => null,
+            'download_count' => 0,
         ];
     }
 }

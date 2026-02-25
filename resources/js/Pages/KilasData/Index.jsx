@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useMemo, useState } from "react";
 import PublicLayout from "@/Layouts/PublicLayout";
 import { Head, Link, router, usePage } from "@inertiajs/react";
 import {
@@ -9,7 +9,12 @@ import {
     ArrowLeft,
     Lock,
     Database,
+    Gem,
+    ShieldCheck,
+    ShoppingBag,
+    CreditCard,
 } from "lucide-react";
+import ApplicationLogo from "@/Components/ApplicationLogo";
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -45,99 +50,26 @@ const chartColors = [
     "rgba(255, 159, 64, 0.8)", // Orange
 ];
 
-// --- KONFIGURASI MENU KATEGORI ---
-const CATEGORY_TREE = [
-    {
-        id: "umum",
-        label: "Umum",
-        subs: [
-            "Geografi & Wilayah",
-            "Demografi",
-            "Iklim",
-            "Kebencanaan",
-            "Lingkungan Hidup",
-        ],
-    },
-    {
-        id: "ekonomi",
-        label: "Ekonomi Makro",
-        subs: [
-            "PDB/PDRB",
-            "Inflasi",
-            "Ekspor-Impor",
-            "Keuangan",
-            "Investasi",
-            "UMKM",
-        ],
-    },
-    {
-        id: "bisnis",
-        label: "Bisnis & Industri",
-        subs: [
-            "Pertanian",
-            "Manufaktur",
-            "Pariwisata",
-            "Pertambangan",
-            "Digital",
-            "Perdagangan",
-        ],
-    },
-    {
-        id: "pemerintahan",
-        label: "Pemerintahan",
-        subs: [
-            "Pemilu",
-            "Keuangan Negara",
-            "Birokrasi",
-            "Hukum",
-            "Hubungan Internasional",
-        ],
-    },
-    {
-        id: "infrastruktur",
-        label: "Infrastruktur",
-        subs: [
-            "Transportasi",
-            "Energi",
-            "Telekomunikasi",
-            "Perumahan",
-            "Jalan & Jembatan",
-        ],
-    },
-    {
-        id: "sosial",
-        label: "Sosial & Kesra",
-        subs: [
-            "Ketenagakerjaan",
-            "Kemiskinan",
-            "Kesehatan",
-            "IPM",
-            "Agama & Budaya",
-        ],
-    },
-    {
-        id: "pendidikan",
-        label: "Pendidikan",
-        subs: [
-            "Satuan Pendidikan",
-            "Peserta Didik",
-            "Tenaga Pendidik",
-            "Riset",
-            "Kurikulum",
-        ],
-    },
-];
-
 export default function KilasDataIndex({
     surveys,
     activeFilters,
     selectedData,
     chartData,
+    premiumPricing,
 }) {
-    const { auth } = usePage().props;
+    const { globalCategoryTree = [] } = usePage().props;
+    const categoryTree = useMemo(
+        () =>
+            globalCategoryTree.map((cat) => ({
+                id: cat.id,
+                label: cat.name,
+                subs: Array.isArray(cat.subs) ? cat.subs : [],
+            })),
+        [globalCategoryTree],
+    );
 
     const renderChartContent = () => {
-        if (!selectedData || !chartData.labels) return null;
+        if (!selectedData) return null;
 
         const chartType = selectedData.chart_type || "bar";
         const isInteractive =
@@ -146,6 +78,57 @@ export default function KilasDataIndex({
 
         // 1. JIKA TIPE TABEL (Biarkan logic tabel yang sudah benar)
         if (chartType === "table") {
+            const rawRows = Array.isArray(selectedData.csv_data)
+                ? selectedData.csv_data
+                : [];
+
+            const normalizeRowToArray = (row) => {
+                if (Array.isArray(row)) return row;
+                if (row && typeof row === "object") return Object.values(row);
+                return [];
+            };
+
+            const cleanedRows = rawRows
+                .map((row) =>
+                    normalizeRowToArray(row).map((cell) =>
+                        String(cell ?? "").trim(),
+                    ),
+                )
+                .filter((row) => row.some((cell) => cell !== ""));
+
+            // Cari kandidat header terbaik dari 5 baris pertama:
+            // baris dengan jumlah sel non-empty terbanyak.
+            const headerScan = cleanedRows.slice(0, 5);
+            let headerIndex = 0;
+            let maxFilled = -1;
+            headerScan.forEach((row, idx) => {
+                const filled = row.filter((cell) => cell !== "").length;
+                if (filled > maxFilled) {
+                    maxFilled = filled;
+                    headerIndex = idx;
+                }
+            });
+
+            const headerRow = cleanedRows[headerIndex] || [];
+            const headers = headerRow.map((cell, idx) =>
+                cell !== "" ? cell : `Kolom ${idx + 1}`,
+            );
+
+            let rows = cleanedRows.slice(headerIndex + 1);
+            if (rows.length === 0 && cleanedRows.length > 1) {
+                // Fallback jika semua data terbaca di atas header index.
+                rows = cleanedRows.filter((_, idx) => idx !== headerIndex);
+            }
+
+            if (rows.length === 0) {
+                return (
+                    <div className="py-12 text-center text-gray-400 flex flex-col items-center">
+                        <Database className="w-12 h-12 mb-2 opacity-20" />
+                        <p>Data tabel belum tersedia.</p>
+                    </div>
+                );
+            }
+
             return (
                 <div className="w-full overflow-hidden border border-gray-200 rounded-xl bg-white shadow-sm flex flex-col h-[500px]">
                     <div className="bg-blue-50 px-6 py-4 border-b border-blue-100 flex items-center justify-between shrink-0">
@@ -156,9 +139,7 @@ export default function KilasDataIndex({
                             </h3>
                         </div>
                         <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
-                            {selectedData.csv_data
-                                ? selectedData.csv_data.length
-                                : 0}{" "}
+                            {rows.length}{" "}
                             Baris
                         </span>
                     </div>
@@ -166,11 +147,7 @@ export default function KilasDataIndex({
                         <table className="w-full text-sm text-left text-gray-500 whitespace-nowrap relative">
                             <thead className="text-xs text-gray-700 uppercase bg-gray-100 border-b sticky top-0 z-10 shadow-sm">
                                 <tr>
-                                    {selectedData.csv_data &&
-                                        selectedData.csv_data.length > 0 &&
-                                        Object.keys(
-                                            selectedData.csv_data[0],
-                                        ).map((header, i) => (
+                                    {headers.map((header, i) => (
                                             <th
                                                 key={i}
                                                 className="px-6 py-3 font-bold border-r border-gray-200 last:border-r-0"
@@ -181,22 +158,19 @@ export default function KilasDataIndex({
                                 </tr>
                             </thead>
                             <tbody>
-                                {selectedData.csv_data &&
-                                    selectedData.csv_data.map((row, idx) => (
+                                {rows.map((row, idx) => (
                                         <tr
                                             key={idx}
                                             className="bg-white border-b hover:bg-gray-50"
                                         >
-                                            {Object.values(row).map(
-                                                (val, vIdx) => (
-                                                    <td
-                                                        key={vIdx}
-                                                        className="px-6 py-3 border-r border-gray-100 last:border-r-0 font-mono"
-                                                    >
-                                                        {val}
-                                                    </td>
-                                                ),
-                                            )}
+                                            {headers.map((_, vIdx) => (
+                                                <td
+                                                    key={vIdx}
+                                                    className="px-6 py-3 border-r border-gray-100 last:border-r-0 font-mono"
+                                                >
+                                                    {row[vIdx] ?? ""}
+                                                </td>
+                                            ))}
                                         </tr>
                                     ))}
                             </tbody>
@@ -205,6 +179,8 @@ export default function KilasDataIndex({
                 </div>
             );
         }
+
+        if (!chartData?.labels) return null;
 
         // 2. PERSIAPAN DATA GRAFIK (BAR/LINE/PIE)
         const commonData = {
@@ -272,6 +248,17 @@ export default function KilasDataIndex({
     const [openCategory, setOpenCategory] = useState(
         activeFilters.category || null,
     );
+    const [keyword, setKeyword] = useState(activeFilters?.q || "");
+    const plans = Array.isArray(premiumPricing?.plans) ? premiumPricing.plans : [];
+    const monthlyPlan = plans.find((item) => item.code === "monthly") || plans[0] || null;
+    const yearlyPlan = plans.find((item) => item.code === "yearly") || plans[1] || null;
+    const singlePrice = Number(premiumPricing?.single_article || 10000);
+    const formatRupiah = (value) =>
+        new Intl.NumberFormat("id-ID", {
+            style: "currency",
+            currency: "IDR",
+            maximumFractionDigits: 0,
+        }).format(Number(value || 0));
 
     const toggleCategory = (catId) => {
         if (openCategory === catId) {
@@ -280,7 +267,11 @@ export default function KilasDataIndex({
             setOpenCategory(catId);
             router.get(
                 route("kilas-data"),
-                { category: catId },
+                {
+                    category: catId,
+                    q: activeFilters?.q || "",
+                    sort: activeFilters?.sort || "desc",
+                },
                 { preserveState: true },
             );
         }
@@ -289,7 +280,12 @@ export default function KilasDataIndex({
     const selectSubCategory = (catId, sub) => {
         router.get(
             route("kilas-data"),
-            { category: catId, subcategory: sub },
+            {
+                category: catId,
+                subcategory: sub,
+                q: activeFilters?.q || "",
+                sort: activeFilters?.sort || "desc",
+            },
             { preserveState: true },
         );
     };
@@ -305,6 +301,21 @@ export default function KilasDataIndex({
     const closeDetail = () => {
         router.get(route("kilas-data"), activeFilters, { preserveState: true });
     };
+    const sort = activeFilters?.sort === "asc" ? "asc" : "desc";
+    const updateSort = (value) => {
+        router.get(
+            route("kilas-data"),
+            { ...activeFilters, sort: value },
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
+    };
+    const applyKeywordFilter = () => {
+        router.get(
+            route("kilas-data"),
+            { ...activeFilters, q: keyword, sort, page: 1 },
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
+    };
 
     return (
         <PublicLayout>
@@ -315,9 +326,9 @@ export default function KilasDataIndex({
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row min-h-[calc(100vh-64px)]">
                     {/* === SIDEBAR KIRI (MENU) === */}
                     {/* Menggunakan w-full md:w-1/4 agar split kiri kanan */}
-                    <div className="w-full md:w-1/4 lg:w-1/5 border-r border-gray-200 bg-gray-50/50">
+                    <div className="w-full md:w-1/4 lg:w-1/5 border-b md:border-b-0 md:border-r border-gray-200 bg-gray-50/50">
                         {/* Sticky Wrapper: Biar menu diam saat discroll */}
-                        <div className="sticky top-[80px]">
+                        <div className="md:sticky md:top-[80px]">
                             <div className="p-4 border-b border-gray-200 bg-white shadow-sm z-10">
                                 <h2 className="font-bold text-gray-800 flex items-center gap-2 text-sm uppercase tracking-wide">
                                     <Database className="w-4 h-4 text-blue-600" />
@@ -325,8 +336,8 @@ export default function KilasDataIndex({
                                 </h2>
                             </div>
 
-                            <div className="p-3 space-y-1 overflow-y-auto max-h-[calc(100vh-140px)] custom-scrollbar">
-                                {CATEGORY_TREE.map((cat) => (
+                            <div className="p-3 space-y-1 overflow-y-auto max-h-[280px] md:max-h-[calc(100vh-140px)] custom-scrollbar">
+                                {categoryTree.map((cat) => (
                                     <div
                                         key={cat.id}
                                         className="border-b border-gray-100 last:border-0 pb-1"
@@ -382,7 +393,7 @@ export default function KilasDataIndex({
                     {/* === AREA KANAN (KONTEN) === */}
                     <div className="w-full md:w-3/4 lg:w-4/5 bg-white min-h-[600px]">
                         {selectedData ? (
-                            <div className="p-6 lg:p-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            <div className="p-4 sm:p-6 lg:p-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <button
                                     onClick={closeDetail}
                                     className="mb-6 flex items-center text-sm text-gray-500 hover:text-blue-600 font-medium transition-colors border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 w-fit"
@@ -416,40 +427,117 @@ export default function KilasDataIndex({
                                 </div>
 
                                 {/* --- LOGIC LOCKDOWN --- */}
-                                {/* Cek: Premium DAN Tidak Login? */}
-                                {selectedData.is_premium &&
-                                (!auth || !auth.user) ? (
+                                {/* Kunci penuh mengikuti status lock dari backend */}
+                                {selectedData.is_locked ? (
                                     // TAMPILAN TERKUNCI (FULL)
-                                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-10 text-center">
-                                        <div className="bg-amber-100 p-4 rounded-full inline-flex mb-4">
-                                            <Lock className="w-8 h-8 text-amber-600" />
+                                    <div className="rounded-2xl border border-slate-300 bg-white overflow-hidden shadow-sm">
+                                        <div className="bg-gradient-to-r from-[#0B2A48] via-[#2F63D7] to-[#D414D4] px-4 py-3 flex items-center justify-between gap-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-8 w-8 rounded-md bg-white/15 flex items-center justify-center">
+                                                    <Lock className="w-4 h-4 text-white" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs uppercase tracking-wide text-white/80">Akses Premium Brightnest</p>
+                                                    <p className="text-sm font-bold text-white">Akses data ini sedang terkunci</p>
+                                                </div>
+                                            </div>
+                                            <ApplicationLogo className="h-7 w-auto object-contain" />
                                         </div>
-                                        <h3 className="text-xl font-bold text-gray-900 mb-2">
-                                            Akses Data Premium
-                                        </h3>
-                                        <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                                            Detail data, grafik, dan analisis
-                                            lengkap dikunci khusus untuk
-                                            pelanggan. Silakan login atau
-                                            berlangganan.
-                                        </p>
-                                        <div className="flex justify-center gap-3">
-                                            <a
-                                                href={route("login")}
-                                                className="bg-amber-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-amber-700 transition"
-                                            >
-                                                Login
-                                            </a>
-                                            <button className="bg-white text-amber-700 border border-amber-200 px-5 py-2 rounded-lg font-bold hover:bg-amber-50 transition">
-                                                Langganan
-                                            </button>
+
+                                        <div className="px-4 py-5 bg-slate-50/80">
+                                            <p className="text-sm text-slate-700 text-center">
+                                                Untuk melanjutkan, pilih membership atau beli artikel ini secara satuan.
+                                            </p>
+
+                                            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                                                    <p className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                                        <Gem className="w-4 h-4 text-blue-600" />
+                                                        Paket Tahunan
+                                                    </p>
+                                                    <p className="text-xs text-slate-600 mt-2">Paket tahunan dengan harga lebih hemat.</p>
+                                                    <p className="mt-3 text-lg font-extrabold text-slate-900">
+                                                        {formatRupiah(yearlyPlan?.amount || 0)}
+                                                    </p>
+                                                    <p className="text-xs text-slate-500">per tahun</p>
+                                                    <a
+                                                        href={route("premium.purchase", {
+                                                            survey: selectedData.slug,
+                                                            mode: "membership",
+                                                        })}
+                                                        className="mt-3 inline-flex w-full justify-center rounded-lg border border-blue-600 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+                                                    >
+                                                        Pilih Tahunan
+                                                    </a>
+                                                </div>
+
+                                                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                                                    <p className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                                        <ShieldCheck className="w-4 h-4 text-blue-600" />
+                                                        Paket Bulanan
+                                                    </p>
+                                                    <p className="text-xs text-slate-600 mt-2">Langganan bulanan untuk akses semua konten premium.</p>
+                                                    <p className="mt-3 text-lg font-extrabold text-slate-900">
+                                                        {formatRupiah(monthlyPlan?.amount || 0)}
+                                                    </p>
+                                                    <p className="text-xs text-slate-500">per bulan</p>
+                                                    <a
+                                                        href={route("premium.purchase", {
+                                                            survey: selectedData.slug,
+                                                            mode: "membership",
+                                                        })}
+                                                        className="mt-3 inline-flex w-full justify-center rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                                                    >
+                                                        Pilih Bulanan
+                                                    </a>
+                                                </div>
+
+                                                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                                                    <p className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                                        <ShoppingBag className="w-4 h-4 text-blue-600" />
+                                                        Beli per Artikel
+                                                    </p>
+                                                    <p className="text-xs text-slate-600 mt-2 line-clamp-2">
+                                                        Beli akses penuh artikel: "{selectedData.title}".
+                                                    </p>
+                                                    <p className="mt-3 text-lg font-extrabold text-slate-900">
+                                                        {formatRupiah(singlePrice)}
+                                                    </p>
+                                                    <p className="text-xs text-slate-500">sekali beli</p>
+                                                    <a
+                                                        href={route("premium.article.purchase", selectedData.slug)}
+                                                        className="mt-3 inline-flex w-full justify-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                                                    >
+                                                        Beli Artikel Ini
+                                                    </a>
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
+                                                <p className="text-xs text-slate-500 mb-2">Metode pembayaran:</p>
+                                                <div className="flex flex-wrap items-center gap-3">
+                                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                                                        <CreditCard className="h-3.5 w-3.5" />
+                                                        QRIS / E-Wallet
+                                                    </span>
+                                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                                                        <CreditCard className="h-3.5 w-3.5" />
+                                                        Transfer Bank
+                                                    </span>
+                                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                                                        <CreditCard className="h-3.5 w-3.5" />
+                                                        Kartu Debit/Kredit
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 ) : (
                                     // TAMPILAN TERBUKA (JIKA LOGIN / GRATIS)
                                     <>
                                         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-8">
-                                            {chartData && chartData.labels ? (
+                                            {(selectedData.chart_type === "table" ||
+                                                (chartData && chartData.labels)) ? (
                                                 renderChartContent()
                                             ) : (
                                                 <div className="py-12 text-center text-gray-400 flex flex-col items-center">
@@ -480,8 +568,8 @@ export default function KilasDataIndex({
                             </div>
                         ) : (
                             // VIEW LIST DATA
-                            <div className="p-6 lg:p-10">
-                                <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+                            <div className="p-4 sm:p-6 lg:p-10">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 pb-4 border-b border-gray-100">
                                     <div>
                                         <h1 className="text-xl md:text-2xl font-bold text-gray-900">
                                             {activeFilters.subcategory
@@ -494,9 +582,68 @@ export default function KilasDataIndex({
                                             Pilih judul untuk melihat grafik.
                                         </p>
                                     </div>
-                                    <span className="text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full">
-                                        {surveys.total} Data
-                                    </span>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <form
+                                            onSubmit={(e) => {
+                                                e.preventDefault();
+                                                applyKeywordFilter();
+                                            }}
+                                            className="w-full sm:w-auto"
+                                        >
+                                            <input
+                                                type="text"
+                                                value={keyword}
+                                                onChange={(e) =>
+                                                    setKeyword(e.target.value)
+                                                }
+                                                placeholder="Cari judul..."
+                                                className="w-full sm:w-auto rounded-lg border-gray-300 text-xs"
+                                            />
+                                        </form>
+                                        <span className="text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full">
+                                            {surveys.total} Data
+                                        </span>
+                                        <select
+                                            value={sort}
+                                            onChange={(e) =>
+                                                updateSort(e.target.value)
+                                            }
+                                            className="rounded-lg border-gray-300 text-xs"
+                                        >
+                                            <option value="desc">
+                                                Terbaru (DESC)
+                                            </option>
+                                            <option value="asc">
+                                                Terlama (ASC)
+                                            </option>
+                                        </select>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setKeyword("");
+                                                router.get(
+                                                    route("kilas-data"),
+                                                    {
+                                                        category:
+                                                            activeFilters?.category ||
+                                                            "",
+                                                        subcategory:
+                                                            activeFilters?.subcategory ||
+                                                            "",
+                                                        sort: "desc",
+                                                    },
+                                                    {
+                                                        preserveState: true,
+                                                        preserveScroll: true,
+                                                        replace: true,
+                                                    },
+                                                );
+                                            }}
+                                            className="px-2 py-1.5 rounded border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                                        >
+                                            Reset
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-3">
@@ -507,7 +654,7 @@ export default function KilasDataIndex({
                                                 onClick={() =>
                                                     openDetail(item.id)
                                                 }
-                                                className="group flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-blue-300 hover:shadow-md hover:bg-white cursor-pointer transition-all bg-white"
+                                                className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-xl border border-gray-100 hover:border-blue-300 hover:shadow-md hover:bg-white cursor-pointer transition-all bg-white"
                                             >
                                                 <div className="flex items-center gap-4">
                                                     <div className="bg-blue-50 text-blue-600 p-3 rounded-lg shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
@@ -593,3 +740,6 @@ export default function KilasDataIndex({
         </PublicLayout>
     );
 }
+
+
+

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str; 
 
 class Survey extends Model
@@ -15,9 +16,11 @@ class Survey extends Model
         'chart_type',      // <--- TAMBAHKAN INI
         'is_interactive',
         'title', 'slug', 'category', 'subcategory',
+        'published_year', 'research_topic',
         'notes', // Tetap notes
-        'content', 'period', 'pic', 'is_premium', 'tags',
-        'csv_data', 'file_path', 'image', 'views'
+        'lead', 'content', 'period', 'pic', 'is_premium', 'tags',
+        'csv_data', 'file_path', 'pdf_path', 'image', 'views', 'download_count',
+        'image_caption', 'image_copyright',
     ];
 
     protected $casts = [
@@ -25,6 +28,8 @@ class Survey extends Model
         'csv_data' => 'array',     
         'is_interactive' => 'boolean', 
         'is_premium' => 'boolean',
+        'published_year' => 'integer',
+        'download_count' => 'integer',
     ];
 
     /**
@@ -55,5 +60,20 @@ class Survey extends Model
     public function getRouteKeyName()
     {
         return 'slug';
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class);
+    }
+
+    public function articlePurchaseRequests(): HasMany
+    {
+        return $this->hasMany(ArticlePurchaseRequest::class);
+    }
+
+    public function articleEntitlements(): HasMany
+    {
+        return $this->hasMany(ArticleEntitlement::class);
     }
 }

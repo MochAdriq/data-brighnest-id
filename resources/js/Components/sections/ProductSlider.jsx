@@ -1,6 +1,6 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { Link } from "@inertiajs/react";
-import { ArrowRight, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import DataCard from "@/Components/ui/DataCard";
 
 export default function ProductSlider({
@@ -14,18 +14,40 @@ export default function ProductSlider({
 }) {
     const scrollRef = useRef(null);
 
-    // Logic Scroll Manual
+    // Logic Scroll dengan looping saat mencapai ujung
     const scroll = (direction) => {
         if (scrollRef.current) {
             const { current } = scrollRef;
             const scrollAmount = 350; // Lebar 1 kartu + gap
+            const maxScrollLeft = current.scrollWidth - current.clientWidth;
+            const threshold = 8;
+
             if (direction === "left") {
-                current.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+                if (current.scrollLeft <= threshold) {
+                    current.scrollTo({ left: maxScrollLeft, behavior: "smooth" });
+                } else {
+                    current.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+                }
             } else {
-                current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+                if (current.scrollLeft >= maxScrollLeft - threshold) {
+                    current.scrollTo({ left: 0, behavior: "smooth" });
+                } else {
+                    current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+                }
             }
         }
     };
+
+    useEffect(() => {
+        const track = scrollRef.current;
+        if (!track) return;
+
+        const interval = setInterval(() => {
+            scroll("right");
+        }, 4500);
+
+        return () => clearInterval(interval);
+    }, [data.length]);
 
     // Format Data untuk Card
     const formatItem = (item) => ({
@@ -80,7 +102,7 @@ export default function ProductSlider({
                     {/* Track Kartu */}
                     <div
                         ref={scrollRef}
-                        className="flex overflow-x-auto gap-6 pb-8 px-2 -mx-2 snap-x snap-mandatory hide-scrollbar justify-center"
+                        className="flex overflow-x-auto gap-4 sm:gap-6 pb-8 px-2 -mx-2 snap-x snap-mandatory hide-scrollbar justify-start sm:justify-center"
                         style={{
                             scrollbarWidth: "none",
                             msOverflowStyle: "none",
@@ -89,7 +111,7 @@ export default function ProductSlider({
                         {data.map((item) => (
                             <div
                                 key={item.id}
-                                className="min-w-[280px] md:min-w-[340px] snap-center"
+                                className="min-w-[86%] sm:min-w-[320px] md:min-w-[340px] snap-center"
                             >
                                 {/* Bungkus Card biar ada efek hover naik */}
                                 <div className="h-full transform transition-transform duration-300 hover:-translate-y-2">

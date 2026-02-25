@@ -2,8 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\ArticlePurchaseRequest;
+use App\Models\Subscription;
+use App\Models\Survey;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 class ProfileTest extends TestCase
@@ -19,6 +23,40 @@ class ProfileTest extends TestCase
             ->get('/profile');
 
         $response->assertOk();
+    }
+
+    public function test_profile_page_contains_membership_and_article_purchase_histories(): void
+    {
+        $user = User::factory()->create();
+        $survey = Survey::factory()->create([
+            'user_id' => $user->id,
+            'is_premium' => true,
+        ]);
+
+        Subscription::create([
+            'user_id' => $user->id,
+            'status' => 'pending',
+            'plan_name' => 'Premium Bulanan',
+            'duration_days' => 30,
+            'amount' => 100000,
+        ]);
+
+        ArticlePurchaseRequest::create([
+            'user_id' => $user->id,
+            'survey_id' => $survey->id,
+            'status' => 'pending',
+            'amount' => 10000,
+        ]);
+
+        $response = $this->actingAs($user)->get('/profile');
+
+        $response->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Profile/Edit')
+            ->has('subscriptionHistory', 1)
+            ->has('articlePurchaseHistory', 1)
+            ->where('profileStats.pending_subscriptions', 1)
+            ->where('profileStats.pending_article_purchases', 1)
+        );
     }
 
     public function test_profile_information_can_be_updated(): void

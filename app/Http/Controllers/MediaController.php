@@ -11,6 +11,11 @@ class MediaController extends Controller
      */
     public function store(Request $request)
     {
+        $user = $request->user();
+        if (!$user || !$user->hasAnyRole(['super_admin', 'publisher'])) {
+            abort(403, 'Anda tidak memiliki akses upload media editor.');
+        }
+
         // 1. Validasi: Harus gambar, Max 2MB
         $request->validate([
             'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',

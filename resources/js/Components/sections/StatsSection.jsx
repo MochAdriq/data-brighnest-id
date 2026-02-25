@@ -66,7 +66,7 @@ export default function StatsSection() {
                         </div>
 
                         {/* Grid Fitur 2x2 */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-10 gap-x-8">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-8 sm:gap-y-10 gap-x-6 sm:gap-x-8">
                             {features.map((item, idx) => (
                                 <div
                                     key={idx}
@@ -99,7 +99,7 @@ export default function StatsSection() {
                         </div>
 
                         {/* Stats Row 1 */}
-                        <div className="flex justify-center gap-16 mb-8">
+                        <div className="flex flex-wrap justify-center gap-8 sm:gap-16 mb-8">
                             {stats.top.map((stat, i) => (
                                 <div key={i} className="text-center">
                                     <div className="text-3xl md:text-4xl font-extrabold text-blue-600 mb-1">
@@ -120,7 +120,7 @@ export default function StatsSection() {
                         </div>
 
                         {/* Stats Row 2 (3 Kolom) */}
-                        <div className="grid grid-cols-3 gap-4 text-center mb-8">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center mb-8">
                             {stats.middle.map((stat, i) => (
                                 <div key={i}>
                                     <div className="text-2xl md:text-3xl font-bold text-blue-600 mb-1">
@@ -134,7 +134,7 @@ export default function StatsSection() {
                         </div>
 
                         {/* Stats Row 3 (2 Kolom Bawah) */}
-                        <div className="flex justify-center gap-16">
+                        <div className="flex flex-wrap justify-center gap-8 sm:gap-16">
                             {stats.bottom.map((stat, i) => (
                                 <div key={i} className="text-center">
                                     <div className="text-3xl font-bold text-gray-800 mb-1">

@@ -5,13 +5,20 @@ import Hero from "@/Components/sections/Hero";
 import { Head, Link, usePage } from "@inertiajs/react";
 import { Home, ChevronRight } from "lucide-react";
 
-// 1. TAMBAHKAN PROPS 'pageLabel' DI SINI
-export default function PublicLayout({ children, heroData, pageLabel }) {
-    const { url } = usePage();
+// TERIMA PROPS 'parentPage' JUGA
+export default function PublicLayout({
+    children,
+    heroData,
+    pageLabel,
+    parentPage,
+}) {
+    const { url, props } = usePage();
+    const navCategories = props.globalCategories || [];
 
     const renderBreadcrumb = () => {
         if (url === "/" || heroData) return null;
 
+        // Bersihkan URL dari query param (?page=1 dst)
         const path = url.split("?")[0];
         const parts = path.split("/").filter((part) => part !== "");
 
@@ -23,7 +30,8 @@ export default function PublicLayout({ children, heroData, pageLabel }) {
             category: "Topik",
             login: "Masuk",
             register: "Daftar",
-            surveys: "Detail Data", // Default kalau gak ada titipan
+            surveys: "Detail Data",
+            data: "Detail Data",
         };
 
         return (
@@ -41,34 +49,41 @@ export default function PublicLayout({ children, heroData, pageLabel }) {
                         {parts.map((part, index) => {
                             let linkPath = `/${parts.slice(0, index + 1).join("/")}`;
 
-                            // --- LOGIC BARU: OVERRIDE LABEL ---
-                            let label;
-
-                            // Jika bagian URL ini adalah 'surveys' DAN Boss menitipkan label khusus...
-                            if (
-                                (part === "surveys" || part === "data") &&
-                                pageLabel
-                            ) {
-                                label = pageLabel.label; // Pakai Label titipan (misal: Kilas Data)
-                                linkPath = pageLabel.url;
-                            } else {
-                                // Logic standar (kamus default)
-                                label =
-                                    labels[part] ||
-                                    decodeURIComponent(part).replace(/-/g, " ");
-                                label =
-                                    label.charAt(0).toUpperCase() +
-                                    label.slice(1);
-                            }
-                            // -------------------------
+                            // Default Label dari Kamus atau URL
+                            let label =
+                                labels[part] ||
+                                decodeURIComponent(part).replace(/-/g, " ");
+                            label =
+                                label.charAt(0).toUpperCase() + label.slice(1);
 
                             const isLast = index === parts.length - 1;
+
+                            // --- LOGIC 1: OVERRIDE PARENT (KATEGORI) ---
+                            // Jika ini bukan yang terakhir, dan kita punya data parentPage
+                            // Biasanya ini bagian 'surveys' atau 'data'
+                            if (
+                                !isLast &&
+                                (part === "surveys" || part === "data") &&
+                                parentPage
+                            ) {
+                                label = parentPage.label; // Contoh: "Kilas Data"
+                                linkPath = parentPage.url;
+                            }
+
+                            // --- LOGIC 2: OVERRIDE CURRENT PAGE (JUDUL ARTIKEL) ---
+                            // Jika ini adalah bagian terakhir URL, dan ada pageLabel (Judul)
+                            if (isLast && pageLabel) {
+                                label = pageLabel; // Contoh: "Judul Artikel Panjang..."
+                            }
 
                             return (
                                 <React.Fragment key={index}>
                                     <ChevronRight className="w-4 h-4 mx-2 text-gray-400 flex-shrink-0" />
                                     {isLast ? (
-                                        <span className="text-blue-600 font-bold max-w-[200px] truncate">
+                                        <span
+                                            className="text-blue-600 font-bold max-w-[140px] sm:max-w-[260px] truncate"
+                                            title={label}
+                                        >
                                             {label}
                                         </span>
                                     ) : (
@@ -90,7 +105,7 @@ export default function PublicLayout({ children, heroData, pageLabel }) {
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
-            <Navbar user={usePage().props.auth.user} />
+            <Navbar user={props.auth.user} categories={navCategories} />
 
             {heroData && (
                 <Hero

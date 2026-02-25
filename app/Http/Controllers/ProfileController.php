@@ -18,9 +18,55 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $activeSubscription = $request->user()
+            ->subscriptions()
+            ->where('status', 'active')
+            ->where(function ($q) {
+                $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
+            })
+            ->latest('ends_at')
+            ->first();
+
+        $latestSubscription = $request->user()
+            ->subscriptions()
+            ->latest()
+            ->first();
+
+        $pendingSubscriptions = $request->user()
+            ->subscriptions()
+            ->where('status', 'pending')
+            ->count();
+        $pendingArticlePurchases = $request->user()
+            ->articlePurchaseRequests()
+            ->where('status', 'pending')
+            ->count();
+        $subscriptionHistory = $request->user()
+            ->subscriptions()
+            ->with('verifier:id,name')
+            ->latest('created_at')
+            ->take(12)
+            ->get()
+            ->values();
+        $articlePurchaseHistory = $request->user()
+            ->articlePurchaseRequests()
+            ->with(['verifier:id,name', 'survey:id,title,slug,type'])
+            ->latest('created_at')
+            ->take(12)
+            ->get()
+            ->values();
+
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
+            'activeSubscription' => $activeSubscription,
+            'latestSubscription' => $latestSubscription,
+            'subscriptionHistory' => $subscriptionHistory,
+            'articlePurchaseHistory' => $articlePurchaseHistory,
+            'profileStats' => [
+                'article_entitlements' => $request->user()->articleEntitlements()->count(),
+                'pending_subscriptions' => $pendingSubscriptions,
+                'pending_article_purchases' => $pendingArticlePurchases,
+            ],
         ]);
     }
 

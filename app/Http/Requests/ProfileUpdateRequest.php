@@ -25,6 +25,17 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            'avatar' => ['nullable', 'string', 'max:1000'],
+            'bio' => ['nullable', 'string', 'max:1500'],
+            'location' => ['nullable', 'string', 'max:120'],
+            'website_url' => ['nullable', 'url', 'max:255'],
+            'preferred_categories' => ['nullable', 'array'],
+            'preferred_categories.*' => ['string', 'max:100'],
+            'notify_new_content' => ['nullable', 'boolean'],
+            'notify_comment_replies' => ['nullable', 'boolean'],
+            'notify_premium_status' => ['nullable', 'boolean'],
+            'locale' => ['nullable', 'in:id,en'],
+            'timezone' => ['nullable', 'string', 'max:64'],
         ];
     }
 }

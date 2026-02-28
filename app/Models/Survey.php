@@ -18,6 +18,7 @@ class Survey extends Model
         'title', 'slug', 'category', 'subcategory',
         'published_year', 'research_topic',
         'notes', // Tetap notes
+        'show_notes',
         'lead', 'content', 'period', 'pic', 'is_premium', 'tags',
         'csv_data', 'file_path', 'pdf_path', 'image', 'views', 'download_count',
         'image_caption', 'image_copyright',
@@ -28,6 +29,7 @@ class Survey extends Model
         'csv_data' => 'array',     
         'is_interactive' => 'boolean', 
         'is_premium' => 'boolean',
+        'show_notes' => 'boolean',
         'published_year' => 'integer',
         'download_count' => 'integer',
     ];

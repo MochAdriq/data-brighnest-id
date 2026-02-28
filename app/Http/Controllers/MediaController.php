@@ -19,6 +19,12 @@ class MediaController extends Controller
         // 1. Validasi: Harus gambar, Max 2MB
         $request->validate([
             'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+        ], [
+            'image.required' => 'Pilih gambar yang ingin diupload.',
+            'image.image' => 'File yang diupload harus berupa gambar.',
+            'image.mimes' => 'Format gambar harus jpeg/png/jpg/gif/webp.',
+            'image.max' => 'Ukuran gambar maksimal 2MB.',
+            'image.uploaded' => 'Upload gambar gagal. Cek batas upload server lalu coba lagi.',
         ]);
 
         if ($request->hasFile('image')) {

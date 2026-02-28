@@ -34,6 +34,7 @@ class SurveyFactory extends Factory
             
             // PENTING: Pakai 'notes', bukan 'description'
             'notes' => $this->faker->paragraph(2), 
+            'show_notes' => false,
             'lead' => $this->faker->paragraph(1),
             
             'content' => '<p>' . implode('</p><p>', $this->faker->paragraphs(8)) . '</p>', // Artikel panjang dummy

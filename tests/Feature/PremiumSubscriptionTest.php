@@ -3,11 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\Subscription;
+use App\Models\ArticleEntitlement;
 use App\Models\ArticlePurchaseRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -155,5 +157,52 @@ class PremiumSubscriptionTest extends TestCase
 
         $response->assertOk();
         $response->assertDownload('article-' . $request->id . '.pdf');
+    }
+
+    public function test_article_purchase_form_exposes_picker_articles_and_excludes_owned_items(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('member');
+
+        $currentSurvey = \App\Models\Survey::factory()->create([
+            'user_id' => $user->id,
+            'title' => 'Current Premium Article',
+            'slug' => 'current-premium-article',
+            'is_premium' => true,
+        ]);
+
+        $ownedSurvey = \App\Models\Survey::factory()->create([
+            'user_id' => $user->id,
+            'title' => 'Owned Premium Article',
+            'slug' => 'owned-premium-article',
+            'is_premium' => true,
+        ]);
+
+        $availableSurvey = \App\Models\Survey::factory()->create([
+            'user_id' => $user->id,
+            'title' => 'Available Premium Article',
+            'slug' => 'available-premium-article',
+            'is_premium' => true,
+        ]);
+
+        ArticleEntitlement::create([
+            'user_id' => $user->id,
+            'survey_id' => $ownedSurvey->id,
+            'granted_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)->get(route('premium.article.purchase', $currentSurvey->slug));
+
+        $response->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Premium/PurchaseArticle')
+            ->has('availablePremiumArticles', 2)
+            ->where('availablePremiumArticles.0.slug', function ($slug) use ($currentSurvey, $availableSurvey) {
+                return in_array($slug, [$currentSurvey->slug, $availableSurvey->slug], true);
+            })
+            ->where('availablePremiumArticles.1.slug', function ($slug) use ($currentSurvey, $availableSurvey) {
+                return in_array($slug, [$currentSurvey->slug, $availableSurvey->slug], true);
+            })
+            ->missing('availablePremiumArticles.2')
+        );
     }
 }

@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
-use Spatie\Permission\Models\Role;
 use Throwable;
 
 class GoogleAuthController extends Controller
@@ -49,6 +48,7 @@ class GoogleAuthController extends Controller
         }
 
         $email = strtolower(trim((string) $googleUser->getEmail()));
+        $googleId = (string) $googleUser->getId();
         if ($email === '') {
             return redirect()->route('login')->with(
                 'status',
@@ -56,34 +56,39 @@ class GoogleAuthController extends Controller
             );
         }
 
-        $user = User::query()
-            ->where('google_id', $googleUser->getId())
-            ->orWhere('email', $email)
-            ->first();
+        $user = User::query()->where('google_id', $googleId)->first();
+        if (!$user) {
+            $user = User::query()->whereRaw('LOWER(email) = ?', [$email])->first();
+        }
+
+        if ($user && $user->google_id && $user->google_id !== $googleId) {
+            return redirect()->route('login')->with(
+                'status',
+                'Email ini sudah terhubung ke akun Google lain.',
+            );
+        }
 
         if (!$user) {
             $user = User::create([
                 'name' => $googleUser->getName() ?: 'User Google',
                 'email' => $email,
-                'google_id' => $googleUser->getId(),
+                'google_id' => $googleId,
                 'avatar' => $googleUser->getAvatar(),
-                'google_only' => true,
+                'google_only' => false,
                 'password' => Hash::make(Str::random(40)),
                 'email_verified_at' => now(),
             ]);
         } else {
             $user->forceFill([
                 'name' => $user->name ?: ($googleUser->getName() ?: 'User Google'),
-                'google_id' => $user->google_id ?: $googleUser->getId(),
+                'google_id' => $googleId,
                 'avatar' => $googleUser->getAvatar(),
-                'email_verified_at' => $user->email_verified_at ?: now(),
+                'email_verified_at' => now(),
+                'google_only' => false,
             ])->save();
         }
 
-        $memberRole = Role::firstOrCreate(['name' => 'member', 'guard_name' => 'web']);
-        if (!$user->hasRole('member')) {
-            $user->assignRole($memberRole);
-        }
+        RegisteredUserController::ensureMemberRole($user);
 
         Auth::login($user, true);
         request()->session()->regenerate();

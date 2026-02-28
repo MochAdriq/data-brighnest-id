@@ -2,6 +2,12 @@ import Checkbox from "@/Components/Checkbox";
 import InputError from "@/Components/InputError";
 import GuestLayout from "@/Layouts/GuestLayout";
 import { Head, Link, useForm } from "@inertiajs/react";
+import { useEffect } from "react";
+import Swal from "sweetalert2";
+
+function formatErrorMessages(errors) {
+    return Object.values(errors || {}).flat().filter(Boolean);
+}
 
 function GoogleIcon() {
     return (
@@ -32,6 +38,33 @@ export default function Login({ status, canResetPassword }) {
         password: "",
         remember: false,
     });
+
+    useEffect(() => {
+        const messages = formatErrorMessages(errors);
+        if (messages.length === 0) {
+            return;
+        }
+
+        Swal.fire({
+            icon: "error",
+            title: "Login gagal",
+            text: messages[0],
+            confirmButtonColor: "#2563eb",
+        });
+    }, [errors]);
+
+    useEffect(() => {
+        if (!status) {
+            return;
+        }
+
+        Swal.fire({
+            icon: "info",
+            title: "Informasi",
+            text: status,
+            confirmButtonColor: "#2563eb",
+        });
+    }, [status]);
 
     const submit = (e) => {
         e.preventDefault();

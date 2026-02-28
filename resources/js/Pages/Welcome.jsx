@@ -10,6 +10,7 @@ export default function Welcome({
     kilasData,
     fokusUtama,
     kabarTepi,
+    publikasiRiset,
     categories = [],
 }) {
     const { auth } = usePage().props;
@@ -26,7 +27,8 @@ export default function Welcome({
         categories,
     };
     const formatData = (data) => {
-        return data.map((item) => ({
+        const safeData = Array.isArray(data) ? data : [];
+        return safeData.map((item) => ({
             ...item,
             // Prioritaskan slug, jika tidak ada gunakan ID (untuk backward compatibility)
             slug: item.slug || item.id,
@@ -72,6 +74,16 @@ export default function Welcome({
                     linkText="Lihat Semua Berita"
                     bgColor="bg-slate-50"
                     icon={<Newspaper className="w-6 h-6" />}
+                />
+
+                <ProductSlider
+                    title="Publikasi Riset"
+                    subtitle="Rilis riset, ringkasan temuan, dan dokumen publikasi terbaru."
+                    data={formatData(publikasiRiset)}
+                    linkUrl={route("surveys.index", { type: "publikasi_riset" })}
+                    linkText="Lihat Semua Publikasi"
+                    bgColor="bg-white"
+                    icon={<BadgeCheck className="w-6 h-6" />}
                 />
 
                 {/* 5. CTA: PENUTUP */}

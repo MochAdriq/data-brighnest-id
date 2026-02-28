@@ -258,12 +258,14 @@ export default function Purchase({
                                             Diajukan: {item.created_at ? new Date(item.created_at).toLocaleDateString("id-ID") : "-"}
                                         </p>
                                         {item.proof_path ? (
-                                            <Link
+                                            <a
                                                 href={route("premium.proofs.article", item.id)}
                                                 className="mt-2 inline-block text-sm text-blue-300 hover:underline"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
                                             >
                                                 Lihat Bukti Pembayaran
-                                            </Link>
+                                            </a>
                                         ) : null}
                                     </div>
                                 ))}

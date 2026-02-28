@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Comment;
 use App\Models\Survey;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
@@ -98,12 +99,16 @@ class SurveyController extends Controller
             if ($isSeries) {
                 $fileData = $this->handleFileUpload($request);
                 $uploadedFilePath = $fileData['file_path'];
-            } elseif ($isResearchPublication) {
-                $pdfPath = $this->handleResearchPdfUpload($request);
-                $uploadedPdfPath = $pdfPath;
             } else {
-                $imagePath = $this->handleImageUpload($request);
-                $uploadedImagePath = $imagePath;
+                if ($request->hasFile('image_file')) {
+                    $imagePath = $this->handleImageUpload($request);
+                    $uploadedImagePath = $imagePath;
+                }
+
+                if ($isResearchPublication) {
+                    $pdfPath = $this->handleResearchPdfUpload($request);
+                    $uploadedPdfPath = $pdfPath;
+                }
             }
 
             // 2. Simpan Data
@@ -123,13 +128,16 @@ class SurveyController extends Controller
                 'pic'            => $this->normalizeString($request->pic),
                 'is_premium'     => filter_var($request->input('is_premium', false), FILTER_VALIDATE_BOOLEAN),
                 'notes'          => $isSeries ? $this->sanitizePlainText($request->notes) : null,
+                'show_notes'     => $isSeries
+                    ? filter_var($request->input('show_notes', false), FILTER_VALIDATE_BOOLEAN)
+                    : null,
                 'lead'           => $isSeries ? null : $this->sanitizePlainText($request->lead),
                 'content'        => ($isSeries || $isResearchPublication) ? null : $this->sanitizeRichText($request->content),
                 'tags'           => $this->processTags($request->tags),
                 'csv_data'       => $isSeries ? $fileData['csv_data'] : null,
                 'file_path'      => $isSeries ? $fileData['file_path'] : null,
                 'pdf_path'       => $isResearchPublication ? $pdfPath : null,
-                'image'          => ($isSeries || $isResearchPublication) ? null : $imagePath,
+                'image'          => $isSeries ? null : $imagePath,
                 'download_count' => 0,
                 'image_caption'  => ($isSeries || $isResearchPublication) ? null : $this->sanitizePlainText($request->image_caption),
                 'image_copyright'=> ($isSeries || $isResearchPublication) ? null : $this->sanitizePlainText($request->image_copyright),
@@ -185,6 +193,9 @@ class SurveyController extends Controller
         $survey->content = $this->sanitizeRichText($survey->content);
         $survey->notes = $this->sanitizePlainText($survey->notes);
         $survey->lead = $this->sanitizePlainText($survey->lead);
+        if ($survey->type === 'series' && !$this->shouldShowSeriesNotes($survey)) {
+            $survey->notes = null;
+        }
 
         $isLocked = $this->isLocked($survey);
         $lockMode = $this->resolveLockMode($survey);
@@ -294,15 +305,15 @@ class SurveyController extends Controller
             if ($isSeries) {
                 $fileData = $this->handleFileUpload($request);
                 $uploadedFilePath = $fileData['file_path'];
-            } elseif ($isResearchPublication) {
-                if ($request->hasFile('pdf_file')) {
-                    $pdfPath = $this->handleResearchPdfUpload($request);
-                    $uploadedPdfPath = $pdfPath;
-                }
             } else {
                 if ($request->hasFile('image_file')) {
                     $imagePath = $this->handleImageUpload($request);
                     $uploadedImagePath = $imagePath;
+                }
+
+                if ($isResearchPublication && $request->hasFile('pdf_file')) {
+                    $pdfPath = $this->handleResearchPdfUpload($request);
+                    $uploadedPdfPath = $pdfPath;
                 }
             }
 
@@ -324,7 +335,10 @@ class SurveyController extends Controller
             $survey->is_premium     = filter_var($request->input('is_premium', false), FILTER_VALIDATE_BOOLEAN);
             $survey->period         = $isSeries ? $this->normalizeString($request->period) : null;
             $survey->tags           = $this->processTags($request->tags);
-            $survey->image          = ($isSeries || $isResearchPublication) ? null : $imagePath;
+            $survey->show_notes     = $isSeries
+                ? filter_var($request->input('show_notes', false), FILTER_VALIDATE_BOOLEAN)
+                : null;
+            $survey->image          = $isSeries ? null : $imagePath;
             $survey->image_caption  = ($isSeries || $isResearchPublication) ? null : $this->sanitizePlainText($request->image_caption);
             $survey->image_copyright= ($isSeries || $isResearchPublication) ? null : $this->sanitizePlainText($request->image_copyright);
 
@@ -358,9 +372,6 @@ class SurveyController extends Controller
                 $this->deleteResearchPdf($oldPdfPath);
             }
             if ($isSeries && $oldImagePath && Storage::disk('public')->exists($oldImagePath)) {
-                Storage::disk('public')->delete($oldImagePath);
-            }
-            if ($isResearchPublication && $oldImagePath && Storage::disk('public')->exists($oldImagePath)) {
                 Storage::disk('public')->delete($oldImagePath);
             }
             if (!$isSeries && $oldFilePath && Storage::disk('public')->exists($oldFilePath)) {
@@ -482,6 +493,9 @@ class SurveyController extends Controller
                 $selectedData->content = $this->sanitizeRichText($selectedData->content);
                 $selectedData->notes = $this->sanitizePlainText($selectedData->notes);
                 $selectedData->lead = $this->sanitizePlainText($selectedData->lead);
+                if (!$this->shouldShowSeriesNotes($selectedData)) {
+                    $selectedData->notes = null;
+                }
                 $isLocked = $this->isLocked($selectedData);
                 // Format chart data khusus untuk halaman Kilas Data
                 $rawChart = $this->extractChartData($selectedData->csv_data, $isLocked);
@@ -628,6 +642,8 @@ class SurveyController extends Controller
      */
     private function validateRequest(Request $request, $id = null)
     {
+        $seriesFileRequiredRule = $id ? 'nullable' : 'required_if:type,series';
+
         $rules = [
             'type'           => 'required|in:series,story,news,publikasi_riset',
             'title'          => ['required', 'string', 'max:255', Rule::unique('surveys')->ignore($id)],
@@ -640,6 +656,7 @@ class SurveyController extends Controller
             'period'         => 'nullable|string',
             'pic'            => 'nullable|string',
             'notes'          => 'nullable|string',
+            'show_notes'     => 'boolean',
             'lead'           => 'nullable|string|max:1200|required_if:type,publikasi_riset',
             'content'        => 'nullable|string',
             'image_caption'  => 'nullable|string|max:255',
@@ -648,20 +665,47 @@ class SurveyController extends Controller
             'is_premium'     => 'boolean',
             // Series wajib upload file (create), story/news pakai image.
             // Selalu nullable agar key kosong dari frontend tidak memicu false-positive validation.
-            'file'           => (($id ? 'nullable' : 'required_if:type,series') . '|nullable|file|mimes:xlsx,xls,csv|max:10240'),
+            'file'           => [
+                $seriesFileRequiredRule,
+                'nullable',
+                'file',
+                'max:10240',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (!$value instanceof UploadedFile) {
+                        return;
+                    }
+
+                    // CSV dari beberapa client (khususnya Windows/Excel) sering terbaca text/plain.
+                    // Karena itu, validasi utama menggunakan ekstensi file agar tidak false-negative.
+                    $allowedExtensions = ['xlsx', 'xls', 'csv'];
+                    $clientExtension = strtolower((string) $value->getClientOriginalExtension());
+                    $detectedExtension = strtolower((string) $value->extension());
+
+                    if (
+                        !in_array($clientExtension, $allowedExtensions, true)
+                        && !in_array($detectedExtension, $allowedExtensions, true)
+                    ) {
+                        $fail('Format file harus Excel (.xlsx, .xls) atau CSV!');
+                    }
+                },
+            ],
             'image_file'     => (($id ? 'nullable' : 'required_unless:type,series,publikasi_riset') . '|nullable|image|mimes:jpeg,png,jpg,webp|max:4096'),
             'pdf_file'       => (($id ? 'nullable' : 'required_if:type,publikasi_riset') . '|nullable|file|mimes:pdf|max:20480'),
         ];
 
         $messages = [
             'file.required_if'     => 'Kilas Data wajib upload file Excel/CSV.',
+            'file.uploaded'        => 'Upload file Kilas Data gagal. Cek batas upload server lalu coba lagi.',
+            'file.file'            => 'File Kilas Data tidak valid.',
             'file.mimes'           => 'Format file harus Excel (.xlsx, .xls) atau CSV!',
-            'file.max'             => 'Ukuran file kegedean! Maksimal 10MB.',
+            'file.max'             => 'Ukuran file Kilas Data maksimal 10MB.',
             'image_file.required_unless' => 'Fokus Utama/Kabar Tepi wajib upload gambar utama.',
+            'image_file.uploaded'  => 'Upload gambar utama gagal. Cek batas upload server lalu coba lagi.',
             'image_file.image'     => 'File gambar tidak valid.',
             'image_file.mimes'     => 'Format gambar harus jpeg/png/jpg/webp.',
             'image_file.max'       => 'Ukuran gambar maksimal 4MB.',
             'pdf_file.required_if' => 'Publikasi Riset wajib upload file PDF.',
+            'pdf_file.uploaded'    => 'Upload file publikasi gagal. Cek batas upload server lalu coba lagi.',
             'pdf_file.file'        => 'File publikasi tidak valid.',
             'pdf_file.mimes'       => 'Format file publikasi harus PDF.',
             'pdf_file.max'         => 'Ukuran PDF maksimal 20MB.',
@@ -1342,9 +1386,13 @@ class SurveyController extends Controller
     private function prepareArticlePayload(Survey $survey, $isLocked, $lockMode)
     {
         $payload = $survey->toArray();
+        $isResearchPublication = $survey->type === 'publikasi_riset';
         $payload['has_publication_pdf'] = !empty($survey->pdf_path);
         // Jalur penyimpanan private tidak boleh diekspos langsung ke frontend.
         $payload['pdf_path'] = null;
+        if ($survey->type === 'series' && !$this->shouldShowSeriesNotes($survey)) {
+            $payload['notes'] = null;
+        }
         $payload['is_locked'] = $isLocked;
         $payload['lock_mode'] = $isLocked ? $lockMode : 'none';
 
@@ -1371,11 +1419,29 @@ class SurveyController extends Controller
         $payload['notes'] = null;
         $payload['csv_data'] = null;
         $payload['file_path'] = null;
-        $payload['image'] = null;
-        $payload['image_caption'] = null;
-        $payload['image_copyright'] = null;
+        if (!$isResearchPublication) {
+            $payload['image'] = null;
+            $payload['image_caption'] = null;
+            $payload['image_copyright'] = null;
+        }
 
         return $payload;
+    }
+
+    /**
+     * Legacy default: data series lama (show_notes null) dianggap tampil.
+     */
+    private function shouldShowSeriesNotes(Survey $survey): bool
+    {
+        if ($survey->type !== 'series') {
+            return false;
+        }
+
+        if ($survey->show_notes === null) {
+            return true;
+        }
+
+        return (bool) $survey->show_notes;
     }
 
     /**

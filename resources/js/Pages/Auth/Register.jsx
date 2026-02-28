@@ -1,6 +1,12 @@
 import InputError from "@/Components/InputError";
 import GuestLayout from "@/Layouts/GuestLayout";
 import { Head, Link, useForm } from "@inertiajs/react";
+import { useEffect } from "react";
+import Swal from "sweetalert2";
+
+function formatErrorMessages(errors) {
+    return Object.values(errors || {}).flat().filter(Boolean);
+}
 
 function GoogleIcon() {
     return (
@@ -25,13 +31,40 @@ function GoogleIcon() {
     );
 }
 
-export default function Register() {
+export default function Register({ status }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         name: "",
         email: "",
         password: "",
         password_confirmation: "",
     });
+
+    useEffect(() => {
+        const messages = formatErrorMessages(errors);
+        if (messages.length === 0) {
+            return;
+        }
+
+        Swal.fire({
+            icon: "error",
+            title: "Pendaftaran gagal",
+            text: messages[0],
+            confirmButtonColor: "#2563eb",
+        });
+    }, [errors]);
+
+    useEffect(() => {
+        if (!status) {
+            return;
+        }
+
+        Swal.fire({
+            icon: "success",
+            title: "Info",
+            text: status,
+            confirmButtonColor: "#2563eb",
+        });
+    }, [status]);
 
     const submit = (e) => {
         e.preventDefault();

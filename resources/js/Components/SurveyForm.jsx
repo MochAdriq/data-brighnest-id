@@ -17,6 +17,24 @@ import {
 } from "lucide-react";
 import axios from "axios";
 
+const extractFirstErrorMessage = (errors) => {
+    if (!errors || typeof errors !== "object") {
+        return "Terjadi kesalahan validasi. Silakan periksa kembali input Anda.";
+    }
+
+    for (const value of Object.values(errors)) {
+        if (Array.isArray(value) && value.length > 0) {
+            return String(value[0]);
+        }
+
+        if (typeof value === "string" && value.trim() !== "") {
+            return value;
+        }
+    }
+
+    return "Terjadi kesalahan validasi. Silakan periksa kembali input Anda.";
+};
+
 const POST_TYPES = [
     {
         id: "series",
@@ -36,7 +54,7 @@ const POST_TYPES = [
     {
         id: "publikasi_riset",
         label: "Publikasi Riset",
-        desc: "Pengantar singkat + file PDF publikasi.",
+        desc: "Pengantar singkat + thumbnail opsional + file PDF.",
     },
 ];
 
@@ -112,6 +130,11 @@ export default function SurveyForm({ survey = null, existingAssets = null }) {
         subcategory: survey?.subcategory || "",
         period: survey?.period || "",
         notes: survey?.notes || "",
+        show_notes: survey
+            ? survey?.show_notes === null || survey?.show_notes === undefined
+                ? true
+                : Boolean(survey?.show_notes)
+            : false,
         lead: survey?.lead || "",
         content: survey?.content || "",
         published_year: survey?.published_year || "",
@@ -129,7 +152,7 @@ export default function SurveyForm({ survey = null, existingAssets = null }) {
 
     useEffect(() => {
         if (Object.keys(errors).length > 0) {
-            const firstError = Object.values(errors)[0];
+            const firstError = extractFirstErrorMessage(errors);
             Swal.fire({
                 icon: "error",
                 title: "Validasi Gagal",
@@ -173,6 +196,7 @@ export default function SurveyForm({ survey = null, existingAssets = null }) {
     const existingFile = existingAssets?.file || null;
     const existingImage = existingAssets?.image || null;
     const existingPdf = existingAssets?.pdf || null;
+    const displayImagePreview = imagePreview || existingImage?.url || null;
 
     const formatBytes = (bytes) => {
         if (!bytes || Number.isNaN(Number(bytes))) return "-";
@@ -197,6 +221,7 @@ export default function SurveyForm({ survey = null, existingAssets = null }) {
                     content: "",
                     image_caption: "",
                     image_copyright: "",
+                    show_notes: Boolean(current.show_notes),
                     chart_type: current.chart_type || "table",
                     is_interactive:
                         current.is_interactive === undefined
@@ -228,6 +253,7 @@ export default function SurveyForm({ survey = null, existingAssets = null }) {
                 pdf_file: null,
                 published_year: "",
                 research_topic: "",
+                show_notes: false,
                 chart_type: "bar",
                 is_interactive: false,
                 notes: "",
@@ -291,8 +317,24 @@ export default function SurveyForm({ survey = null, existingAssets = null }) {
                 const quill = quillRef.current.getEditor();
                 const range = quill.getSelection(true);
                 quill.insertEmbed(range.index, "image", url);
-            } catch {
-                Swal.fire("Upload gagal", "Ukuran maksimal 2MB.", "error");
+            } catch (error) {
+                const status = error?.response?.status;
+                const responseErrors = error?.response?.data?.errors;
+                const responseMessage = error?.response?.data?.message;
+
+                let message = "Upload gambar gagal. Silakan coba lagi.";
+                if (status === 403) {
+                    message = "Anda tidak memiliki akses upload gambar editor.";
+                } else if (status === 422) {
+                    message =
+                        extractFirstErrorMessage(responseErrors) ||
+                        responseMessage ||
+                        "Format/ukuran gambar tidak sesuai. Maksimal 2MB.";
+                } else if (typeof responseMessage === "string" && responseMessage.trim() !== "") {
+                    message = responseMessage;
+                }
+
+                Swal.fire("Upload gagal", message, "error");
             }
         };
     };
@@ -528,6 +570,15 @@ export default function SurveyForm({ survey = null, existingAssets = null }) {
                             {isSeries && (
                                 <section className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm space-y-4">
                                     <h3 className="text-lg font-bold text-gray-900">Catatan Teknis Data</h3>
+                                    <label className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                                        <span>Tampilkan catatan teknis?</span>
+                                        <input
+                                            type="checkbox"
+                                            checked={Boolean(data.show_notes)}
+                                            onChange={(e) => setData("show_notes", e.target.checked)}
+                                            className="rounded"
+                                        />
+                                    </label>
                                     <textarea
                                         rows="4"
                                         value={data.notes}
@@ -661,6 +712,71 @@ export default function SurveyForm({ survey = null, existingAssets = null }) {
                             ) : isResearchPublication ? (
                                 <section className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm space-y-4">
                                     <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                        <FileImage className="w-5 h-5 text-blue-600" />
+                                        Thumbnail Publikasi (Opsional)
+                                    </h3>
+
+                                    {isEdit && (
+                                        <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs text-blue-900 space-y-2">
+                                            <p className="font-semibold">
+                                                Upload ulang thumbnail bersifat opsional.
+                                            </p>
+                                            {existingImage ? (
+                                                <>
+                                                    <p>
+                                                        Thumbnail saat ini:{" "}
+                                                        <span className="font-bold">
+                                                            {existingImage.name}
+                                                        </span>
+                                                    </p>
+                                                    <p>
+                                                        Format:{" "}
+                                                        <span className="uppercase font-semibold">
+                                                            {existingImage.extension || "-"}
+                                                        </span>{" "}
+                                                        • Ukuran:{" "}
+                                                        <span className="font-semibold">
+                                                            {formatBytes(existingImage.size_bytes)}
+                                                        </span>
+                                                    </p>
+                                                </>
+                                            ) : (
+                                                <p className="text-amber-700">
+                                                    Belum ada thumbnail tersimpan.
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {displayImagePreview && (
+                                        <img
+                                            src={displayImagePreview}
+                                            alt="Preview thumbnail publikasi"
+                                            className="w-full h-auto rounded-lg border border-gray-200"
+                                        />
+                                    )}
+
+                                    <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl cursor-pointer hover:bg-gray-50">
+                                        <p className="text-sm font-semibold text-gray-700 px-4 text-center">
+                                            {data.image_file
+                                                ? data.image_file.name
+                                                : "Klik untuk upload thumbnail (jpg/png/webp)"}
+                                        </p>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept="image/jpeg,image/png,image/jpg,image/webp"
+                                            onChange={(e) => {
+                                                const file = e.target.files[0];
+                                                setData("image_file", file);
+                                                if (file) {
+                                                    setImagePreview(URL.createObjectURL(file));
+                                                }
+                                            }}
+                                        />
+                                    </label>
+
+                                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                                         <FileText className="w-5 h-5 text-blue-600" />
                                         File Publikasi (PDF)
                                     </h3>
@@ -756,9 +872,9 @@ export default function SurveyForm({ survey = null, existingAssets = null }) {
                                         </div>
                                     )}
 
-                                    {imagePreview && (
+                                    {displayImagePreview && (
                                         <img
-                                            src={imagePreview}
+                                            src={displayImagePreview}
                                             alt="Preview"
                                             className="w-full h-44 object-cover rounded-lg border border-gray-200"
                                         />

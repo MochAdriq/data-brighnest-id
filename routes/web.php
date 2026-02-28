@@ -17,6 +17,7 @@ Route::get('/', function () {
     $kilasData = collect();
     $fokusUtama = collect();
     $kabarTepi = collect();
+    $publikasiRiset = collect();
     $trendingCategories = collect();
 
     try {
@@ -25,6 +26,7 @@ Route::get('/', function () {
         $fokusUtama = $storyItems;
         $kilasData = Survey::where('type', 'series')->latest()->take(8)->get();
         $kabarTepi = Survey::where('type', 'news')->latest()->take(6)->get();
+        $publikasiRiset = Survey::where('type', 'publikasi_riset')->latest()->take(6)->get();
 
         $trendingCategories = Survey::select('category', DB::raw('SUM(views) as total_views'))
             ->groupBy('category')
@@ -47,6 +49,7 @@ Route::get('/', function () {
         'kilasData' => $kilasData,
         'fokusUtama' => $fokusUtama,
         'kabarTepi' => $kabarTepi,
+        'publikasiRiset' => $publikasiRiset,
         'categories' => $trendingCategories,
     ]);
 })->name('home');

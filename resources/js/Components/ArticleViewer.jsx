@@ -377,20 +377,7 @@ export default function ArticleViewer({ article, chartData, premiumPricing }) {
     }
 
     if (isResearchPublication) {
-        const publicationMeta = [
-            {
-                label: "Tahun",
-                value: article.published_year || "-",
-            },
-            {
-                label: "Topik",
-                value: article.research_topic || "-",
-            },
-            {
-                label: "Download",
-                value: Number(article.download_count || 0).toLocaleString("id-ID"),
-            },
-        ];
+        const publicationImageUrl = article.image ? `/storage/${article.image}` : null;
 
         return (
             <div className="space-y-8">
@@ -434,33 +421,41 @@ export default function ArticleViewer({ article, chartData, premiumPricing }) {
                                     <span>{article.views || 0} views</span>
                                 </span>
                             </div>
+                            <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-700">
+                                <span className="inline-flex items-center gap-1.5">
+                                    <span className="text-slate-400">Tahun:</span>
+                                    <span className="font-semibold text-slate-900">
+                                        {article.published_year || "-"}
+                                    </span>
+                                </span>
+                                <span className="inline-flex items-center gap-1.5 min-w-0">
+                                    <span className="text-slate-400">Topik:</span>
+                                    <span className="font-semibold text-slate-900 break-words">
+                                        {article.research_topic || "-"}
+                                    </span>
+                                </span>
+                            </div>
                         </div>
                     </div>
 
                     <div className="p-6 md:p-10 space-y-6">
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 md:p-6">
+                        {publicationImageUrl ? (
+                            <figure className="space-y-2">
+                                <img
+                                    src={publicationImageUrl}
+                                    alt={article.title}
+                                    className="block w-full h-auto max-h-[72vh] object-contain rounded-2xl border border-slate-100 bg-white"
+                                />
+                            </figure>
+                        ) : null}
+
+                        <div>
                             <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">
                                 Pengantar
                             </p>
                             <p className="text-slate-700 leading-relaxed">
                                 {article.lead || "Publikasi ini belum memiliki pengantar."}
                             </p>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            {publicationMeta.map((item) => (
-                                <div
-                                    key={item.label}
-                                    className="rounded-xl border border-slate-200 bg-white p-4"
-                                >
-                                    <p className="text-xs uppercase tracking-wide text-slate-500">
-                                        {item.label}
-                                    </p>
-                                    <p className="mt-1 text-sm font-semibold text-slate-900">
-                                        {item.value}
-                                    </p>
-                                </div>
-                            ))}
                         </div>
 
                         <section className="rounded-2xl border border-slate-200 bg-white p-5 md:p-6 space-y-4">

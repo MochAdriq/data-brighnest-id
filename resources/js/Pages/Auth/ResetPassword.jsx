@@ -4,6 +4,12 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, useForm } from '@inertiajs/react';
+import { useEffect } from 'react';
+import Swal from 'sweetalert2';
+
+function formatErrorMessages(errors) {
+    return Object.values(errors || {}).flat().filter(Boolean);
+}
 
 export default function ResetPassword({ token, email }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -12,6 +18,20 @@ export default function ResetPassword({ token, email }) {
         password: '',
         password_confirmation: '',
     });
+
+    useEffect(() => {
+        const messages = formatErrorMessages(errors);
+        if (messages.length === 0) {
+            return;
+        }
+
+        Swal.fire({
+            icon: 'error',
+            title: 'Reset gagal',
+            text: messages[0],
+            confirmButtonColor: '#2563eb',
+        });
+    }, [errors]);
 
     const submit = (e) => {
         e.preventDefault();

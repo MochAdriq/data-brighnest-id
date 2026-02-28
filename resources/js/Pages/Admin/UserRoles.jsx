@@ -116,10 +116,15 @@ export default function UserRoles({ auth, users, filters, availableRoles }) {
 
     const resetSearch = () => {
         searchForm.setData("q", "");
+        searchForm.setData("role", "");
+        searchForm.setData("sort", "desc");
         router.get(
             route("admin.user-roles.index"),
-            { sort: searchForm.data.sort, role: searchForm.data.role },
-            { replace: true },
+            { sort: "desc" },
+            {
+                preserveScroll: true,
+                replace: true,
+            },
         );
     };
 

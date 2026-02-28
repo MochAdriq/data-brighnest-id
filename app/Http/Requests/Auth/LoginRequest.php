@@ -43,15 +43,18 @@ class LoginRequest extends FormRequest
         $this->ensureIsNotRateLimited();
 
         $email = Str::lower((string) $this->input('email'));
-        $user = User::query()->where('email', $email)->first();
+        $user = User::query()->whereRaw('LOWER(email) = ?', [$email])->first();
 
-        if ($user && $user->google_only) {
+        if ($user && is_null($user->email_verified_at)) {
             throw ValidationException::withMessages([
-                'email' => 'Akun ini hanya bisa masuk menggunakan Google.',
+                'email' => 'Email belum terverifikasi. Silakan daftar ulang untuk mendapatkan kode verifikasi baru.',
             ]);
         }
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        if (! Auth::attempt([
+            'email' => $email,
+            'password' => (string) $this->input('password'),
+        ], $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

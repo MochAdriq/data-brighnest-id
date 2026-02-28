@@ -3,11 +3,44 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, useForm } from '@inertiajs/react';
+import { useEffect } from 'react';
+import Swal from 'sweetalert2';
+
+function formatErrorMessages(errors) {
+    return Object.values(errors || {}).flat().filter(Boolean);
+}
 
 export default function ForgotPassword({ status }) {
     const { data, setData, post, processing, errors } = useForm({
         email: '',
     });
+
+    useEffect(() => {
+        const messages = formatErrorMessages(errors);
+        if (messages.length === 0) {
+            return;
+        }
+
+        Swal.fire({
+            icon: 'error',
+            title: 'Permintaan gagal',
+            text: messages[0],
+            confirmButtonColor: '#2563eb',
+        });
+    }, [errors]);
+
+    useEffect(() => {
+        if (!status) {
+            return;
+        }
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Berhasil',
+            text: status,
+            confirmButtonColor: '#2563eb',
+        });
+    }, [status]);
 
     const submit = (e) => {
         e.preventDefault();

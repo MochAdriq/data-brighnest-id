@@ -112,4 +112,10 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    'registration_verification' => [
+        'expires' => env('AUTH_REGISTRATION_VERIFICATION_EXPIRES', 10),
+        'max_attempts' => env('AUTH_REGISTRATION_VERIFICATION_MAX_ATTEMPTS', 5),
+        'resend_cooldown' => env('AUTH_REGISTRATION_VERIFICATION_RESEND_COOLDOWN', 60),
+    ],
+
 ];

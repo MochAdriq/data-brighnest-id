@@ -14,10 +14,13 @@ export default function AuthenticatedLayout({ header, children }) {
         useState(false);
 
     const showAdminHeader = isSuperAdmin;
+    const isProfilePage = route().current('profile.*');
+    const hideTopNavLinks = isProfilePage;
+    const showTopWhiteBar = showAdminHeader && !isProfilePage;
 
     return (
-        <div className="min-h-screen bg-gray-100">
-            {showAdminHeader && (
+        <div className="min-h-screen overflow-x-hidden bg-gray-100">
+            {showTopWhiteBar && (
             <nav className="border-b border-gray-100 bg-white">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex h-16 justify-between">
@@ -28,40 +31,42 @@ export default function AuthenticatedLayout({ header, children }) {
                                 </Link>
                             </div>
 
-                    <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                        <NavLink
-                            href={route('dashboard')}
-                            active={route().current('dashboard')}
-                        >
-                            Dashboard
-                        </NavLink>
-                        {!isSuperAdmin && (
+                    {!hideTopNavLinks && (
+                        <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                             <NavLink
-                                href={route('premium.purchase')}
-                                active={route().current('premium.purchase')}
+                                href={route('dashboard')}
+                                active={route().current('dashboard')}
                             >
-                                Premium
+                                Dashboard
                             </NavLink>
-                        )}
-                        {isSuperAdmin && (
-                            <NavLink
-                                href={route('premium.admin.subscriptions')}
-                                active={route().current(
-                                    'premium.admin.subscriptions',
-                                )}
-                            >
-                                Verifikasi Premium
-                            </NavLink>
-                        )}
-                        {isSuperAdmin && (
-                            <NavLink
-                                href={route('admin.user-roles.index')}
-                                active={route().current('admin.user-roles.*')}
-                            >
-                                Role User
-                            </NavLink>
-                        )}
-                    </div>
+                            {!isSuperAdmin && (
+                                <NavLink
+                                    href={route('premium.purchase')}
+                                    active={route().current('premium.purchase')}
+                                >
+                                    Premium
+                                </NavLink>
+                            )}
+                            {isSuperAdmin && (
+                                <NavLink
+                                    href={route('premium.admin.subscriptions')}
+                                    active={route().current(
+                                        'premium.admin.subscriptions',
+                                    )}
+                                >
+                                    Verifikasi Premium
+                                </NavLink>
+                            )}
+                            {isSuperAdmin && (
+                                <NavLink
+                                    href={route('admin.user-roles.index')}
+                                    active={route().current('admin.user-roles.*')}
+                                >
+                                    Role User
+                                </NavLink>
+                            )}
+                        </div>
+                    )}
                         </div>
 
                         <div className="hidden sm:ms-6 sm:flex sm:items-center">
@@ -158,40 +163,42 @@ export default function AuthenticatedLayout({ header, children }) {
                         ' sm:hidden'
                     }
                 >
-                    <div className="space-y-1 pb-3 pt-2">
-                        <ResponsiveNavLink
-                            href={route('dashboard')}
-                            active={route().current('dashboard')}
-                        >
-                            Dashboard
-                        </ResponsiveNavLink>
-                        {!isSuperAdmin && (
+                    {!hideTopNavLinks && (
+                        <div className="space-y-1 pb-3 pt-2">
                             <ResponsiveNavLink
-                                href={route('premium.purchase')}
-                                active={route().current('premium.purchase')}
+                                href={route('dashboard')}
+                                active={route().current('dashboard')}
                             >
-                                Premium
+                                Dashboard
                             </ResponsiveNavLink>
-                        )}
-                        {isSuperAdmin && (
-                            <ResponsiveNavLink
-                                href={route('premium.admin.subscriptions')}
-                                active={route().current(
-                                    'premium.admin.subscriptions',
-                                )}
-                            >
-                                Verifikasi Premium
-                            </ResponsiveNavLink>
-                        )}
-                        {isSuperAdmin && (
-                            <ResponsiveNavLink
-                                href={route('admin.user-roles.index')}
-                                active={route().current('admin.user-roles.*')}
-                            >
-                                Role User
-                            </ResponsiveNavLink>
-                        )}
-                    </div>
+                            {!isSuperAdmin && (
+                                <ResponsiveNavLink
+                                    href={route('premium.purchase')}
+                                    active={route().current('premium.purchase')}
+                                >
+                                    Premium
+                                </ResponsiveNavLink>
+                            )}
+                            {isSuperAdmin && (
+                                <ResponsiveNavLink
+                                    href={route('premium.admin.subscriptions')}
+                                    active={route().current(
+                                        'premium.admin.subscriptions',
+                                    )}
+                                >
+                                    Verifikasi Premium
+                                </ResponsiveNavLink>
+                            )}
+                            {isSuperAdmin && (
+                                <ResponsiveNavLink
+                                    href={route('admin.user-roles.index')}
+                                    active={route().current('admin.user-roles.*')}
+                                >
+                                    Role User
+                                </ResponsiveNavLink>
+                            )}
+                        </div>
+                    )}
 
                     <div className="border-t border-gray-200 pb-1 pt-4">
                         <div className="px-4">
@@ -220,7 +227,7 @@ export default function AuthenticatedLayout({ header, children }) {
             </nav>
             )}
 
-            {showAdminHeader && header && (
+            {showTopWhiteBar && header && (
                 <header className="bg-white shadow">
                     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                         {header}

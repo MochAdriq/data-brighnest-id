@@ -6,6 +6,7 @@ use App\Models\ArticleEntitlement;
 use App\Models\ArticlePurchaseRequest;
 use App\Models\Subscription;
 use App\Models\Survey;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -63,16 +64,7 @@ class PremiumController extends Controller
             ];
         }
 
-        $availablePremiumArticles = Survey::query()
-            ->select(['id', 'slug', 'title', 'type', 'category', 'created_at'])
-            ->where('is_premium', true)
-            ->whereDoesntHave('articleEntitlements', function ($query) use ($user) {
-                $query->where('user_id', $user->id);
-            })
-            ->latest('created_at')
-            ->take(40)
-            ->get()
-            ->values();
+        $availablePremiumArticles = $this->availablePremiumArticlesForUser($user);
 
         $pendingArticleRequests = $user->articlePurchaseRequests()
             ->with('survey:id,title,slug,type')
@@ -154,6 +146,7 @@ class PremiumController extends Controller
             'pricing' => [
                 'single_article' => (int) config('premium.single_article_price', 10000),
             ],
+            'availablePremiumArticles' => $this->availablePremiumArticlesForUser($user, (int) $survey->id),
             'pendingArticleRequests' => $user->articlePurchaseRequests()
                 ->with('survey:id,title,slug,type')
                 ->where('status', 'pending')
@@ -548,6 +541,33 @@ class PremiumController extends Controller
     {
         $plan = $this->getMembershipPlan($planCode);
         return (int) ($plan['duration_days'] ?? 30);
+    }
+
+    private function availablePremiumArticlesForUser(User $user, ?int $includeSurveyId = null)
+    {
+        $query = Survey::query()
+            ->select(['id', 'slug', 'title', 'type', 'category', 'created_at'])
+            ->where('is_premium', true);
+
+        if ($includeSurveyId) {
+            $query->where(function ($subQuery) use ($user, $includeSurveyId) {
+                $subQuery
+                    ->where('id', $includeSurveyId)
+                    ->orWhereDoesntHave('articleEntitlements', function ($entitlementQuery) use ($user) {
+                        $entitlementQuery->where('user_id', $user->id);
+                    });
+            });
+        } else {
+            $query->whereDoesntHave('articleEntitlements', function ($entitlementQuery) use ($user) {
+                $entitlementQuery->where('user_id', $user->id);
+            });
+        }
+
+        return $query
+            ->latest('created_at')
+            ->take(80)
+            ->get()
+            ->values();
     }
 
     private function downloadProofFile(string $storedPath, string $namePrefix)

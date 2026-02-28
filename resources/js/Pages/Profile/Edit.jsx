@@ -33,11 +33,15 @@ const formatCurrency = (value) => {
     }).format(Number(value || 0));
 };
 
+const GLASS_CARD = 'rounded-2xl border border-slate-700/70 bg-slate-900/80 shadow-2xl backdrop-blur-xl';
+const LIGHT_CARD = 'rounded-2xl border border-slate-700/70 bg-slate-900/80 shadow-2xl backdrop-blur-xl';
+const STAT_CARD = 'rounded-2xl border border-slate-700/70 bg-slate-900/70 p-4 shadow-lg';
+
 function HistoryEmpty({ title, subtitle }) {
     return (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5">
-            <p className="text-sm font-semibold text-slate-700">{title}</p>
-            <p className="text-xs text-slate-500 mt-1">{subtitle}</p>
+        <div className="rounded-2xl border border-dashed border-slate-600 bg-slate-900/60 p-5">
+            <p className="text-sm font-semibold text-slate-100">{title}</p>
+            <p className="mt-1 text-xs text-slate-400">{subtitle}</p>
         </div>
     );
 }
@@ -85,9 +89,9 @@ export default function Edit({
                         </Link>
                     </div>
 
-                    <section className="rounded-2xl border border-slate-700/70 bg-slate-900/80 p-5 shadow-2xl backdrop-blur-xl sm:p-6">
+                    <section className={`${GLASS_CARD} p-5 sm:p-6`}>
                         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
-                            <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-4">
+                            <div className="rounded-2xl border border-slate-700/80 bg-slate-900/75 p-5 shadow-lg">
                                 <div className="flex items-start gap-3">
                                     {user?.avatar ? (
                                         <img
@@ -140,17 +144,17 @@ export default function Edit({
                             </div>
 
                             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                                <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
+                                <div className={STAT_CARD}>
                                     <p className="text-xs uppercase tracking-wider text-slate-400">Artikel Dimiliki</p>
                                     <p className="mt-2 text-2xl font-bold text-white">{profileStats?.article_entitlements || 0}</p>
                                     <p className="mt-1 text-xs text-slate-300">Akses permanen artikel satuan.</p>
                                 </div>
-                                <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
+                                <div className={STAT_CARD}>
                                     <p className="text-xs uppercase tracking-wider text-slate-400">Pending Membership</p>
                                     <p className="mt-2 text-2xl font-bold text-white">{profileStats?.pending_subscriptions || 0}</p>
                                     <p className="mt-1 text-xs text-slate-300">Menunggu verifikasi admin.</p>
                                 </div>
-                                <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
+                                <div className={STAT_CARD}>
                                     <p className="text-xs uppercase tracking-wider text-slate-400">Pending Artikel</p>
                                     <p className="mt-2 text-2xl font-bold text-white">{profileStats?.pending_article_purchases || 0}</p>
                                     <p className="mt-1 text-xs text-slate-300">Pengajuan pembelian satuan.</p>
@@ -161,9 +165,9 @@ export default function Edit({
 
                     <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
                         <div className="space-y-6">
-                            <div className="rounded-2xl border border-slate-700 bg-white p-4 sm:p-6">
-                                <h3 className="text-lg font-bold text-slate-900 mb-2">Riwayat Membership</h3>
-                                <p className="text-sm text-slate-600 mb-4">Riwayat pengajuan dan verifikasi membership Anda.</p>
+                            <div className={`${LIGHT_CARD} p-4 sm:p-6`}>
+                                <h3 className="mb-2 text-lg font-bold text-white">Riwayat Membership</h3>
+                                <p className="mb-4 text-sm text-slate-300">Riwayat pengajuan dan verifikasi membership Anda.</p>
 
                                 {subscriptionHistory.length === 0 ? (
                                     <HistoryEmpty
@@ -171,9 +175,9 @@ export default function Edit({
                                         subtitle="Pengajuan membership Anda akan tampil di sini."
                                     />
                                 ) : (
-                                    <div className="overflow-x-auto rounded-xl border border-gray-200">
-                                        <table className="min-w-full text-sm text-left text-gray-600">
-                                            <thead className="bg-gray-50 text-xs uppercase text-gray-500 border-b">
+                                    <div className="overflow-x-auto rounded-2xl border border-slate-700 bg-slate-950/50">
+                                        <table className="min-w-full text-left text-sm text-slate-300">
+                                            <thead className="border-b border-slate-700 bg-slate-800/80 text-xs uppercase text-slate-400">
                                                 <tr>
                                                     <th className="px-4 py-3">Tanggal</th>
                                                     <th className="px-4 py-3">Paket</th>
@@ -185,7 +189,7 @@ export default function Edit({
                                             </thead>
                                             <tbody>
                                                 {subscriptionHistory.map((item) => (
-                                                    <tr key={item.id} className="border-b last:border-b-0 bg-white">
+                                                    <tr key={item.id} className="border-b border-slate-800 bg-slate-900/50 last:border-b-0">
                                                         <td className="px-4 py-3">{formatDate(item.created_at)}</td>
                                                         <td className="px-4 py-3">{item.plan_name || '-'}</td>
                                                         <td className="px-4 py-3 uppercase font-semibold">{item.status || '-'}</td>
@@ -193,12 +197,14 @@ export default function Edit({
                                                         <td className="px-4 py-3">{item.verifier?.name || '-'}</td>
                                                         <td className="px-4 py-3">
                                                             {item.proof_path ? (
-                                                                <Link
+                                                                <a
                                                                     href={route('premium.proofs.subscription', item.id)}
-                                                                    className="text-blue-600 hover:underline"
+                                                                    className="text-blue-300 hover:text-blue-200 hover:underline"
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
                                                                 >
                                                                     Lihat Bukti
-                                                                </Link>
+                                                                </a>
                                                             ) : (
                                                                 '-'
                                                             )}
@@ -211,9 +217,9 @@ export default function Edit({
                                 )}
                             </div>
 
-                            <div className="rounded-2xl border border-slate-700 bg-white p-4 sm:p-6">
-                                <h3 className="text-lg font-bold text-slate-900 mb-2">Riwayat Pembelian Artikel</h3>
-                                <p className="text-sm text-slate-600 mb-4">Riwayat pembelian artikel satuan dan hasil verifikasinya.</p>
+                            <div className={`${LIGHT_CARD} p-4 sm:p-6`}>
+                                <h3 className="mb-2 text-lg font-bold text-white">Riwayat Pembelian Artikel</h3>
+                                <p className="mb-4 text-sm text-slate-300">Riwayat pembelian artikel satuan dan hasil verifikasinya.</p>
 
                                 {articlePurchaseHistory.length === 0 ? (
                                     <HistoryEmpty
@@ -221,9 +227,9 @@ export default function Edit({
                                         subtitle="Pengajuan pembelian artikel Anda akan tampil di sini."
                                     />
                                 ) : (
-                                    <div className="overflow-x-auto rounded-xl border border-gray-200">
-                                        <table className="min-w-full text-sm text-left text-gray-600">
-                                            <thead className="bg-gray-50 text-xs uppercase text-gray-500 border-b">
+                                    <div className="overflow-x-auto rounded-2xl border border-slate-700 bg-slate-950/50">
+                                        <table className="min-w-full text-left text-sm text-slate-300">
+                                            <thead className="border-b border-slate-700 bg-slate-800/80 text-xs uppercase text-slate-400">
                                                 <tr>
                                                     <th className="px-4 py-3">Tanggal</th>
                                                     <th className="px-4 py-3">Artikel</th>
@@ -235,14 +241,14 @@ export default function Edit({
                                             </thead>
                                             <tbody>
                                                 {articlePurchaseHistory.map((item) => (
-                                                    <tr key={item.id} className="border-b last:border-b-0 bg-white">
+                                                    <tr key={item.id} className="border-b border-slate-800 bg-slate-900/50 last:border-b-0">
                                                         <td className="px-4 py-3">{formatDate(item.created_at)}</td>
                                                         <td className="px-4 py-3">
-                                                            <p className="font-medium text-gray-900">{item.survey?.title || '-'}</p>
+                                                            <p className="font-medium text-slate-100">{item.survey?.title || '-'}</p>
                                                             {item.survey?.slug ? (
                                                                 <Link
                                                                     href={route('surveys.show', item.survey.slug)}
-                                                                    className="text-xs text-emerald-700 hover:underline"
+                                                                    className="text-xs text-emerald-300 hover:text-emerald-200 hover:underline"
                                                                     target="_blank"
                                                                 >
                                                                     Buka artikel
@@ -254,12 +260,14 @@ export default function Edit({
                                                         <td className="px-4 py-3">{item.verifier?.name || '-'}</td>
                                                         <td className="px-4 py-3">
                                                             {item.proof_path ? (
-                                                                <Link
+                                                                <a
                                                                     href={route('premium.proofs.article', item.id)}
-                                                                    className="text-blue-600 hover:underline"
+                                                                    className="text-blue-300 hover:text-blue-200 hover:underline"
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
                                                                 >
                                                                     Lihat Bukti
-                                                                </Link>
+                                                                </a>
                                                             ) : (
                                                                 '-'
                                                             )}
@@ -274,7 +282,7 @@ export default function Edit({
                         </div>
 
                         <aside className="space-y-6">
-                            <div className="rounded-2xl border border-slate-700 bg-slate-900/85 p-5 text-slate-100">
+                            <div className={`${GLASS_CARD} p-5 text-slate-100`}>
                                 <div className="mb-3 flex items-center gap-2">
                                     <Bell className="h-4 w-4 text-blue-300" />
                                     <h3 className="text-sm font-bold uppercase tracking-wide">Ringkasan Notifikasi</h3>
@@ -295,7 +303,7 @@ export default function Edit({
                                 </div>
                             </div>
 
-                            <div className="rounded-2xl border border-slate-700 bg-slate-900/85 p-5 text-slate-100">
+                            <div className={`${GLASS_CARD} p-5 text-slate-100`}>
                                 <div className="mb-3 flex items-center gap-2">
                                     <FileClock className="h-4 w-4 text-blue-300" />
                                     <h3 className="text-sm font-bold uppercase tracking-wide">Info Akun</h3>
@@ -315,7 +323,7 @@ export default function Edit({
                     </section>
 
                     <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                        <div className="rounded-2xl border border-slate-700 bg-white p-4 sm:p-6">
+                        <div className={`${LIGHT_CARD} p-4 sm:p-6`}>
                             <UpdateProfileInformationForm
                                 mustVerifyEmail={mustVerifyEmail}
                                 status={status}
@@ -324,11 +332,11 @@ export default function Edit({
                         </div>
 
                         <div className="space-y-6">
-                            <div className="rounded-2xl border border-slate-700 bg-white p-4 sm:p-6">
+                            <div className={`${LIGHT_CARD} p-4 sm:p-6`}>
                                 <UpdatePasswordForm className="max-w-none" />
                             </div>
 
-                            <div className="rounded-2xl border border-red-200 bg-white p-4 sm:p-6">
+                            <div className="rounded-2xl border border-red-500/50 bg-slate-900/80 p-4 shadow-2xl backdrop-blur-xl sm:p-6">
                                 <DeleteUserForm className="max-w-none" />
                             </div>
                         </div>

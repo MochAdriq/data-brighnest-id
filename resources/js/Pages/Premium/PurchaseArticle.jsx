@@ -1,4 +1,4 @@
-﻿import React from "react";
+﻿import React, { useMemo, useState } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, useForm } from "@inertiajs/react";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
@@ -16,6 +16,7 @@ const typeLabels = {
     series: "Kilas Data",
     story: "Fokus Utama",
     news: "Kabar Tepi",
+    publikasi_riset: "Publikasi Riset",
 };
 
 export default function PurchaseArticle({
@@ -24,6 +25,7 @@ export default function PurchaseArticle({
     activeSubscription,
     articlePurchaseState,
     pricing,
+    availablePremiumArticles = [],
     pendingArticleRequests = [],
 }) {
     const form = useForm({
@@ -38,6 +40,35 @@ export default function PurchaseArticle({
         Boolean(activeSubscription) ||
         Boolean(articlePurchaseState?.already_owned) ||
         Boolean(articlePurchaseState?.has_pending);
+
+    const [articleQuery, setArticleQuery] = useState("");
+    const [articleType, setArticleType] = useState("all");
+
+    const articleTypeOptions = useMemo(() => {
+        const types = new Set(
+            (Array.isArray(availablePremiumArticles) ? availablePremiumArticles : [])
+                .map((item) => String(item?.type || "").trim())
+                .filter(Boolean),
+        );
+        return ["all", ...Array.from(types)];
+    }, [availablePremiumArticles]);
+
+    const filteredArticles = useMemo(() => {
+        const query = articleQuery.trim().toLowerCase();
+
+        return (Array.isArray(availablePremiumArticles)
+            ? availablePremiumArticles
+            : []
+        )
+            .filter((item) => Number(item?.id) !== Number(article?.id))
+            .filter((item) => (articleType === "all" ? true : item?.type === articleType))
+            .filter((item) =>
+                query === ""
+                    ? true
+                    : String(item?.title || "").toLowerCase().includes(query),
+            )
+            .slice(0, 12);
+    }, [availablePremiumArticles, article?.id, articleQuery, articleType]);
 
     const submit = (e) => {
         e.preventDefault();
@@ -90,6 +121,73 @@ export default function PurchaseArticle({
                             Pengajuan artikel ini masih menunggu verifikasi.
                         </div>
                     )}
+
+                    <section className="rounded-2xl border border-slate-700/70 bg-slate-900/80 p-6 shadow-2xl backdrop-blur-xl">
+                        <h3 className="text-lg font-bold text-white">Pilih Artikel Satuan Lain</h3>
+                        <p className="mt-1 text-sm text-slate-300">
+                            Cari judul atau filter tipe agar Anda bisa memilih artikel premium lain dengan cepat.
+                        </p>
+
+                        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="md:col-span-2">
+                                <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                    Cari Judul
+                                </label>
+                                <input
+                                    type="text"
+                                    value={articleQuery}
+                                    onChange={(e) => setArticleQuery(e.target.value)}
+                                    placeholder="Contoh: Kemiskinan, Infrastruktur..."
+                                    className="mt-1 w-full rounded-lg border-slate-700 bg-slate-950 text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                    Tipe Konten
+                                </label>
+                                <select
+                                    value={articleType}
+                                    onChange={(e) => setArticleType(e.target.value)}
+                                    className="mt-1 w-full rounded-lg border-slate-700 bg-slate-950 text-white"
+                                >
+                                    {articleTypeOptions.map((type) => (
+                                        <option key={type} value={type}>
+                                            {type === "all" ? "Semua Tipe" : typeLabels[type] || type}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        {filteredArticles.length === 0 ? (
+                            <div className="mt-4 rounded-xl border border-dashed border-slate-600 bg-slate-800/60 p-4 text-sm text-slate-300">
+                                Tidak ada artikel yang cocok dengan pencarian/filter saat ini.
+                            </div>
+                        ) : (
+                            <div className="mt-4 grid grid-cols-1 gap-3">
+                                {filteredArticles.map((item) => (
+                                    <div
+                                        key={item.id}
+                                        className="rounded-xl border border-slate-700 bg-slate-900/60 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                                    >
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-white truncate">{item.title}</p>
+                                            <p className="mt-1 text-xs text-slate-300">
+                                                {typeLabels[item.type] || item.type}
+                                                {item.category ? ` • ${item.category}` : ""}
+                                            </p>
+                                        </div>
+                                        <Link
+                                            href={route("premium.article.purchase", item.slug)}
+                                            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700"
+                                        >
+                                            Pilih Artikel
+                                        </Link>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </section>
 
                     <section className="rounded-2xl border border-slate-700/70 bg-slate-900/80 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
                         <h1 className="text-2xl font-black text-white">Detail Pesanan</h1>
@@ -214,12 +312,14 @@ export default function PurchaseArticle({
                                             Diajukan: {item.created_at ? new Date(item.created_at).toLocaleDateString("id-ID") : "-"}
                                         </p>
                                         {item.proof_path ? (
-                                            <Link
+                                            <a
                                                 href={route("premium.proofs.article", item.id)}
                                                 className="mt-2 inline-block text-sm text-blue-300 hover:underline"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
                                             >
                                                 Lihat Bukti Pembayaran
-                                            </Link>
+                                            </a>
                                         ) : null}
                                     </div>
                                 ))}

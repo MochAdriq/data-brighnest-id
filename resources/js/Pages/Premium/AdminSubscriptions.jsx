@@ -217,12 +217,14 @@ export default function AdminSubscriptions({
                                     </div>
                                     <div className="flex items-center justify-between gap-2 mb-3">
                                         {item.proof_path ? (
-                                            <Link
+                                            <a
                                                 href={route("premium.proofs.subscription", item.id)}
                                                 className="text-blue-600 hover:underline text-sm"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
                                             >
                                                 Lihat Bukti
-                                            </Link>
+                                            </a>
                                         ) : (
                                             <span className="text-sm text-slate-400">
                                                 Bukti tidak ada
@@ -287,12 +289,14 @@ export default function AdminSubscriptions({
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     {item.proof_path ? (
-                                                        <Link
+                                                        <a
                                                             href={route("premium.proofs.subscription", item.id)}
                                                             className="text-blue-600 hover:underline"
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
                                                         >
                                                             Lihat Bukti
-                                                        </Link>
+                                                        </a>
                                                     ) : (
                                                         "-"
                                                     )}
@@ -369,12 +373,14 @@ export default function AdminSubscriptions({
                                     </div>
                                     <div className="flex items-center justify-between gap-2 mb-3">
                                         {item.proof_path ? (
-                                            <Link
+                                            <a
                                                 href={route("premium.proofs.article", item.id)}
                                                 className="text-blue-600 hover:underline text-sm"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
                                             >
                                                 Lihat Bukti
-                                            </Link>
+                                            </a>
                                         ) : (
                                             <span className="text-sm text-slate-400">
                                                 Bukti tidak ada
@@ -472,12 +478,14 @@ export default function AdminSubscriptions({
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     {item.proof_path ? (
-                                                        <Link
+                                                        <a
                                                             href={route("premium.proofs.article", item.id)}
                                                             className="text-blue-600 hover:underline"
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
                                                         >
                                                             Lihat Bukti
-                                                        </Link>
+                                                        </a>
                                                     ) : (
                                                         "-"
                                                     )}

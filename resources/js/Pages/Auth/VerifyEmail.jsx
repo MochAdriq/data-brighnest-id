@@ -1,9 +1,24 @@
 import PrimaryButton from '@/Components/PrimaryButton';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
+import { useEffect } from 'react';
+import Swal from 'sweetalert2';
 
 export default function VerifyEmail({ status }) {
     const { post, processing } = useForm({});
+
+    useEffect(() => {
+        if (status !== 'verification-link-sent') {
+            return;
+        }
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Email terkirim',
+            text: 'Link verifikasi baru sudah dikirim.',
+            confirmButtonColor: '#2563eb',
+        });
+    }, [status]);
 
     const submit = (e) => {
         e.preventDefault();

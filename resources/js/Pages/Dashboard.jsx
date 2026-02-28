@@ -8,7 +8,6 @@ import {
     Trash2,
     Edit,
     ShieldCheck,
-    Users,
 } from "lucide-react";
 import PaginationLinks from "@/Components/PaginationLinks";
 
@@ -81,29 +80,13 @@ export default function Dashboard({
         <AuthenticatedLayout
             user={auth.user}
             header={
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex flex-col gap-1">
                     <h2 className="font-semibold text-xl text-gray-800 leading-tight">
                         Dashboard Manajemen
                     </h2>
-                    {isSuperAdmin && (
-                        <div className="flex items-center gap-2">
-                            <Link
-                                href={route("admin.user-roles.index")}
-                                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700 text-white text-sm font-semibold hover:bg-slate-800 transition-colors"
-                            >
-                                <Users className="w-4 h-4" />
-                                Role User
-                            </Link>
-                            <Link
-                                href={route("premium.admin.subscriptions")}
-                                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors"
-                            >
-                                <ShieldCheck className="w-4 h-4" />
-                                Verifikasi Premium (
-                                {pendingPremiumVerificationsCount})
-                            </Link>
-                        </div>
-                    )}
+                    <p className="text-sm text-slate-500">
+                        Anda sedang berada di halaman dashboard.
+                    </p>
                 </div>
             }
         >
@@ -242,16 +225,18 @@ export default function Dashboard({
                                                             </div>
                                                             <div className="mt-3">
                                                                 {item.proof_path ? (
-                                                                    <Link
+                                                                    <a
                                                                         href={route(
                                                                             "premium.proofs.subscription",
                                                                             item.id,
                                                                         )}
                                                                         className="text-blue-600 hover:underline text-sm font-semibold"
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
                                                                     >
                                                                         Lihat
                                                                         Bukti
-                                                                    </Link>
+                                                                    </a>
                                                                 ) : (
                                                                     <span className="text-sm text-gray-400">
                                                                         Bukti
@@ -321,16 +306,18 @@ export default function Dashboard({
                                                                     </td>
                                                                     <td className="px-4 py-3">
                                                                         {item.proof_path ? (
-                                                                            <Link
+                                                                            <a
                                                                                 href={route(
                                                                                     "premium.proofs.subscription",
                                                                                     item.id,
                                                                                 )}
                                                                                 className="text-blue-600 hover:underline"
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
                                                                             >
                                                                                 Lihat
                                                                                 Bukti
-                                                                            </Link>
+                                                                            </a>
                                                                         ) : (
                                                                             "-"
                                                                         )}
@@ -422,16 +409,18 @@ export default function Dashboard({
                                                             </div>
                                                             <div className="mt-3 flex items-center gap-3">
                                                                 {item.proof_path ? (
-                                                                    <Link
+                                                                    <a
                                                                         href={route(
                                                                             "premium.proofs.article",
                                                                             item.id,
                                                                         )}
                                                                         className="text-blue-600 hover:underline text-sm font-semibold"
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
                                                                     >
                                                                         Lihat
                                                                         Bukti
-                                                                    </Link>
+                                                                    </a>
                                                                 ) : (
                                                                     <span className="text-sm text-gray-400">
                                                                         Bukti
@@ -543,16 +532,18 @@ export default function Dashboard({
                                                                     </td>
                                                                     <td className="px-4 py-3">
                                                                         {item.proof_path ? (
-                                                                            <Link
+                                                                            <a
                                                                                 href={route(
                                                                                     "premium.proofs.article",
                                                                                     item.id,
                                                                                 )}
                                                                                 className="text-blue-600 hover:underline"
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
                                                                             >
                                                                                 Lihat
                                                                                 Bukti
-                                                                            </Link>
+                                                                            </a>
                                                                         ) : (
                                                                             "-"
                                                                         )}

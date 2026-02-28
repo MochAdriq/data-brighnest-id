@@ -44,14 +44,17 @@ export default function UpdatePasswordForm({ className = '' }) {
         });
     };
 
+    const fieldClass =
+        'mt-1 block w-full rounded-md border-slate-700 bg-slate-950 text-slate-100 placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500';
+
     return (
         <section className={className}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900">
+                <h2 className="text-lg font-medium text-white">
                     Update Password
                 </h2>
 
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-sm text-slate-300">
                     Ensure your account is using a long, random password to stay
                     secure.
                 </p>
@@ -62,6 +65,7 @@ export default function UpdatePasswordForm({ className = '' }) {
                     <InputLabel
                         htmlFor="current_password"
                         value="Current Password"
+                        className="text-slate-200"
                     />
 
                     <TextInput
@@ -72,18 +76,18 @@ export default function UpdatePasswordForm({ className = '' }) {
                             setData('current_password', e.target.value)
                         }
                         type="password"
-                        className="mt-1 block w-full"
+                        className={fieldClass}
                         autoComplete="current-password"
                     />
 
                     <InputError
                         message={errors.current_password}
-                        className="mt-2"
+                        className="mt-2 !text-red-400"
                     />
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="password" value="New Password" />
+                    <InputLabel htmlFor="password" value="New Password" className="text-slate-200" />
 
                     <TextInput
                         id="password"
@@ -91,17 +95,18 @@ export default function UpdatePasswordForm({ className = '' }) {
                         value={data.password}
                         onChange={(e) => setData('password', e.target.value)}
                         type="password"
-                        className="mt-1 block w-full"
+                        className={fieldClass}
                         autoComplete="new-password"
                     />
 
-                    <InputError message={errors.password} className="mt-2" />
+                    <InputError message={errors.password} className="mt-2 !text-red-400" />
                 </div>
 
                 <div>
                     <InputLabel
                         htmlFor="password_confirmation"
                         value="Confirm Password"
+                        className="text-slate-200"
                     />
 
                     <TextInput
@@ -111,18 +116,23 @@ export default function UpdatePasswordForm({ className = '' }) {
                             setData('password_confirmation', e.target.value)
                         }
                         type="password"
-                        className="mt-1 block w-full"
+                        className={fieldClass}
                         autoComplete="new-password"
                     />
 
                     <InputError
                         message={errors.password_confirmation}
-                        className="mt-2"
+                        className="mt-2 !text-red-400"
                     />
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <PrimaryButton disabled={processing}>Save</PrimaryButton>
+                    <PrimaryButton
+                        disabled={processing}
+                        className="border-blue-500 bg-blue-600 hover:bg-blue-500 focus:bg-blue-500 active:bg-blue-700"
+                    >
+                        Save
+                    </PrimaryButton>
 
                     <Transition
                         show={recentlySuccessful}
@@ -131,7 +141,7 @@ export default function UpdatePasswordForm({ className = '' }) {
                         leave="transition ease-in-out"
                         leaveTo="opacity-0"
                     >
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-slate-300">
                             Saved.
                         </p>
                     </Transition>

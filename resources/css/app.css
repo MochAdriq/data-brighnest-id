@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body,
+#app {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+img {
+    max-width: 100%;
+}
+
 /* Di app.css Boss */
 .custom-scrollbar::-webkit-scrollbar {
     width: 6px;

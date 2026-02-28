@@ -42,12 +42,9 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_google_only_users_can_not_login_with_password_form(): void
+    public function test_unverified_users_can_not_login_with_password_form(): void
     {
-        $user = User::factory()->create([
-            'google_id' => 'google-test-uid-001',
-            'google_only' => true,
-        ]);
+        $user = User::factory()->unverified()->create();
 
         $response = $this->from('/login')->post('/login', [
             'email' => $user->email,

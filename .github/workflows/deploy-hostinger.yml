@@ -3,6 +3,7 @@ name: Deploy to Hostinger (Laravel App + Public)
 on:
   push:
     branches: ["master"]
+  workflow_dispatch:
 
 jobs:
   deploy:

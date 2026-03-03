@@ -22,13 +22,14 @@ jobs:
           npm ci
           npm run build
 
-      # 1) Deploy seluruh app ke laravel_app
       - name: Deploy laravel_app
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
           local-dir: ./
           server-dir: /domains/brightnest.id/laravel_app/
           exclude: |
@@ -42,12 +43,13 @@ jobs:
             **/storage/framework/sessions/**
             **/storage/framework/views/**
 
-      # 2) Deploy public ke public_html
       - name: Deploy public_html
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
           local-dir: ./public/
           server-dir: /domains/brightnest.id/public_html/

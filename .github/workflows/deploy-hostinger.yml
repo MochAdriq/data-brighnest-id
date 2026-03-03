@@ -1,4 +1,4 @@
-name: Deploy to Hostinger (Laravel App + Public)
+name: Deploy to Hostinger (Safe Runtime)
 
 on:
   push:
@@ -23,34 +23,41 @@ jobs:
           npm ci
           npm run build
 
-      - name: Deploy laravel_app
+      - name: Deploy laravel_app (code only)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
+          protocol: ftp
           port: 21
           local-dir: ./
-          server-dir: /domains/brightnest.id/laravel_app/
+          server-dir: /laravel_app/
+          state-name: .ftp-state-laravel_app.json
+          dangerous-clean-slate: false
           exclude: |
             **/.git*
             **/.github/**
+            **/.env
             **/node_modules/**
             **/tests/**
-            **/.env
-            **/storage/logs/**
-            **/storage/framework/cache/**
-            **/storage/framework/sessions/**
-            **/storage/framework/views/**
+            **/storage/**
+            **/bootstrap/cache/*.php
+            **/public/storage/**
+            **/public/hot
 
-      - name: Deploy public_html
+      - name: Deploy public_html (keep runtime files)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
+          protocol: ftp
           port: 21
           local-dir: ./public/
-          server-dir: /domains/brightnest.id/public_html/
+          server-dir: /public_html/
+          state-name: .ftp-state-public_html.json
+          dangerous-clean-slate: false
+          exclude: |
+            **/storage/**
+            **/.well-known/**

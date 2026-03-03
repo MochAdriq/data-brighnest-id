@@ -8,6 +8,12 @@ function formatErrorMessages(errors) {
     return Object.values(errors || {}).flat().filter(Boolean);
 }
 
+function normalizeCode(value) {
+    return String(value || "")
+        .replace(/\D/g, "")
+        .slice(0, 6);
+}
+
 export default function VerifyRegistrationCode({
     email,
     status,
@@ -16,7 +22,7 @@ export default function VerifyRegistrationCode({
     resendAvailableIn,
     expiresAt,
 }) {
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, transform, post, processing, errors, reset } = useForm({
         code: "",
     });
     const [secondsToResend, setSecondsToResend] = useState(resendAvailableIn || 0);
@@ -78,6 +84,11 @@ export default function VerifyRegistrationCode({
     const submit = (e) => {
         e.preventDefault();
 
+        transform((formData) => ({
+            ...formData,
+            code: normalizeCode(formData.code),
+        }));
+
         post(route("register.verify.store"), {
             onFinish: () => reset("code"),
         });
@@ -118,11 +129,18 @@ export default function VerifyRegistrationCode({
                         name="code"
                         type="text"
                         inputMode="numeric"
-                        pattern="\\d{6}"
+                        autoComplete="one-time-code"
+                        pattern="[0-9]{6}"
+                        title="Masukkan tepat 6 digit angka."
                         maxLength={6}
                         value={data.code}
                         className="block w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-center text-lg tracking-[0.5em] text-white placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                        onChange={(e) => setData("code", e.target.value.replace(/\D/g, ""))}
+                        onChange={(e) => setData("code", normalizeCode(e.target.value))}
+                        onPaste={(e) => {
+                            e.preventDefault();
+                            const pasted = e.clipboardData?.getData("text") || "";
+                            setData("code", normalizeCode(pasted));
+                        }}
                         placeholder="------"
                         autoFocus
                         required

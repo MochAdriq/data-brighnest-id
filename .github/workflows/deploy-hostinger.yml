@@ -1,4 +1,4 @@
-name: Deploy to Hostinger (Safe Runtime)
+name: Deploy to Hostinger (Incremental Safe Runtime)
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
           npm ci
           npm run build
 
-      - name: Deploy laravel_app (code only)
+      - name: Deploy laravel_app (incremental)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -46,7 +46,7 @@ jobs:
             **/public/storage/**
             **/public/hot
 
-      - name: Deploy public_html (keep runtime files)
+      - name: Deploy public_html (incremental)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}

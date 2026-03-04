@@ -10,6 +10,23 @@ const formatRupiah = (value) =>
         maximumFractionDigits: 0,
     }).format(Number(value || 0));
 
+const buildSpecialWaLink = (phone, title, userName) => {
+    const safePhone = String(phone || "628133113110").replace(/\D/g, "");
+    const safeTitle = String(title || "artikel ini").trim();
+    const safeUser = String(userName || "").trim();
+    const messageParts = [`saya tertarik terkait artikel ${safeTitle}`];
+
+    if (safeUser) {
+        messageParts.push(`nama saya ${safeUser}`);
+    }
+
+    messageParts.push("mohon info detail akses kategori spesial");
+
+    return `https://wa.me/${safePhone}?text=${encodeURIComponent(
+        messageParts.join(", ") + ".",
+    )}`;
+};
+
 const PLAN_FEATURES = {
     monthly: [
         "Akses konten premium selama paket aktif",
@@ -93,6 +110,7 @@ export default function Purchase({
     selectedArticlePurchaseState = null,
     pendingArticleRequests = [],
     availablePremiumArticles = [],
+    specialPremium = null,
 }) {
     const plans = Array.isArray(pricing?.plans) ? pricing.plans : [];
     const groups = useMemo(() => {
@@ -112,6 +130,14 @@ export default function Purchase({
     const visiblePlans = groups[activeTab] || [];
     const retailTargetSlug =
         selectedPremiumArticle?.slug || availablePremiumArticles?.[0]?.slug || null;
+    const selectedIsSpecial =
+        Boolean(selectedArticlePurchaseState?.is_special) ||
+        selectedPremiumArticle?.premium_tier === "special";
+    const specialWaLink = buildSpecialWaLink(
+        specialPremium?.whatsapp_number,
+        selectedPremiumArticle?.title,
+        auth?.user?.name,
+    );
 
     return (
         <AuthenticatedLayout
@@ -188,6 +214,11 @@ export default function Purchase({
                                 {selectedArticlePurchaseState?.has_pending && (
                                     <p className="mt-1 text-xs text-amber-700">Pengajuan artikel ini masih menunggu verifikasi.</p>
                                 )}
+                                {selectedIsSpecial && (
+                                    <p className="mt-1 text-xs text-cyan-700">
+                                        Artikel ini termasuk kategori spesial dan diarahkan ke WhatsApp admin.
+                                    </p>
+                                )}
                             </div>
                         )}
 
@@ -214,7 +245,16 @@ export default function Purchase({
                                 <p className="mt-2 text-sm text-slate-200">
                                     Mulai dari <span className="font-bold">{formatRupiah(pricing.single_article)}</span> / artikel.
                                 </p>
-                                {retailTargetSlug ? (
+                                {selectedIsSpecial ? (
+                                    <a
+                                        href={specialWaLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="mt-3 inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700"
+                                    >
+                                        Hubungi WhatsApp Admin
+                                    </a>
+                                ) : retailTargetSlug ? (
                                     <Link
                                         href={route("premium.article.purchase", retailTargetSlug)}
                                         className="mt-3 inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700"

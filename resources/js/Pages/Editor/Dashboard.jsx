@@ -2,6 +2,7 @@
 import { Edit, Eye, FileText } from "lucide-react";
 import RoleWorkspaceLayout from "@/Layouts/RoleWorkspaceLayout";
 import PaginationLinks from "@/Components/PaginationLinks";
+import PremiumTierBadge from "@/Components/ui/PremiumTierBadge";
 import { useState } from "react";
 
 export default function EditorDashboard({
@@ -151,9 +152,18 @@ export default function EditorDashboard({
                                         <p className="font-semibold text-slate-900">
                                             {item.title}
                                         </p>
-                                        <p className="text-xs text-slate-500 mt-1">
-                                            {item.type.toUpperCase()} • {new Date(item.created_at).toLocaleDateString("id-ID")}
-                                        </p>
+                                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                                            <p className="text-xs text-slate-500">
+                                                {item.type.toUpperCase()} •{" "}
+                                                {new Date(
+                                                    item.created_at,
+                                                ).toLocaleDateString("id-ID")}
+                                            </p>
+                                            <PremiumTierBadge
+                                                tier={item.premium_tier}
+                                                isPremium={item.is_premium}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2 flex-wrap">

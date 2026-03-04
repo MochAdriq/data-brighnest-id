@@ -14,6 +14,7 @@ import {
     CreditCard,
     Wallet,
 } from "lucide-react";
+import { usePage } from "@inertiajs/react";
 import ApplicationLogo from "@/Components/ApplicationLogo";
 import {
     Chart as ChartJS,
@@ -57,7 +58,84 @@ const formatRupiah = (value) =>
         maximumFractionDigits: 0,
     }).format(Number(value || 0));
 
+const SPECIAL_WHATSAPP_NUMBER = "628133113110";
+
+const buildSpecialWaLink = (title, userName) => {
+    const safeTitle = String(title || "artikel ini").trim();
+    const safeUser = String(userName || "").trim();
+    const articleUrl = typeof window !== "undefined" ? window.location.href : "";
+
+    const messageParts = [`saya tertarik terkait artikel ${safeTitle}`];
+
+    if (safeUser) {
+        messageParts.push(`nama saya ${safeUser}`);
+    }
+
+    if (articleUrl) {
+        messageParts.push(`link artikel ${articleUrl}`);
+    }
+
+    messageParts.push("mohon info detail akses kategori spesial");
+
+    return `https://wa.me/${SPECIAL_WHATSAPP_NUMBER}?text=${encodeURIComponent(
+        messageParts.join(", ") + ".",
+    )}`;
+};
+
 function PaywallPanel({ article, pricing = {}, compact = false }) {
+    const { auth } = usePage().props;
+    const isSpecialPremium =
+        article?.premium_tier === "special" ||
+        article?.is_special_premium === true;
+    const waLink = buildSpecialWaLink(article?.title, auth?.user?.name);
+
+    if (isSpecialPremium) {
+        return (
+            <div
+                className={`rounded-2xl border border-slate-300 bg-white overflow-hidden ${
+                    compact ? "shadow-lg" : "shadow-sm"
+                }`}
+            >
+                <div className="bg-gradient-to-r from-[#0B2A48] via-[#2F63D7] to-[#0EA5A4] px-4 py-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-md bg-white/15 flex items-center justify-center">
+                            <Lock className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                            <p className="text-xs uppercase tracking-wide text-white/80">
+                                Kategori Spesial
+                            </p>
+                            <p className="text-sm font-bold text-white">
+                                Konten ini diakses via admin Brightnest
+                            </p>
+                        </div>
+                    </div>
+                    <ApplicationLogo className="h-7 w-auto object-contain" />
+                </div>
+
+                <div className="px-4 py-5 bg-slate-50/80">
+                    <p className="text-sm text-slate-700 text-center">
+                        Untuk artikel kategori spesial, silakan hubungi admin
+                        melalui WhatsApp.
+                    </p>
+
+                    <a
+                        href={waLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
+                    >
+                        Hubungi via WhatsApp
+                    </a>
+
+                    <p className="mt-2 text-center text-xs text-slate-500">
+                        WhatsApp: 08133113110
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
     const plans = Array.isArray(pricing?.plans) ? pricing.plans : [];
     const monthly = plans.find((p) => p.code === "monthly") || plans[0] || null;
     const yearly = plans.find((p) => p.code === "yearly") || plans[1] || null;

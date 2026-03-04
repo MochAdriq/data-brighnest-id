@@ -17,6 +17,7 @@ export default function Show({
 }) {
     const isEditorialArticle =
         article.type === "story" || article.type === "news";
+    const isResearchPublication = article.type === "publikasi_riset";
 
     const typeLabel = {
         series: { label: "Kilas Data", url: route("kilas-data") },
@@ -82,13 +83,13 @@ export default function Show({
             <Head title={article.title} />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
-                {article.type === "series" || !isEditorialArticle ? (
+                {article.type === "series" ? (
                     <ArticleViewer
                         article={article}
                         chartData={chartData}
                         premiumPricing={premiumPricing}
                     />
-                ) : (
+                ) : isEditorialArticle ? (
                     <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[160px_minmax(0,1fr)_320px] gap-4 sm:gap-6 items-start">
                         <aside className="hidden xl:block xl:sticky xl:top-24">
                             <VerticalAdSlot
@@ -157,6 +158,20 @@ export default function Show({
                             />
                             <CommentWidget widget={commentWidget} />
                         </aside>
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        <ArticleViewer
+                            article={article}
+                            chartData={chartData}
+                            premiumPricing={premiumPricing}
+                        />
+                        {isResearchPublication && (
+                            <CommentSection
+                                article={article}
+                                comments={comments}
+                            />
+                        )}
                     </div>
                 )}
             </div>

@@ -10,6 +10,7 @@ import {
     ShieldCheck,
 } from "lucide-react";
 import PaginationLinks from "@/Components/PaginationLinks";
+import PremiumTierBadge from "@/Components/ui/PremiumTierBadge";
 
 export default function Dashboard({
     auth,
@@ -381,11 +382,26 @@ export default function Dashboard({
                                                                     ?.email ||
                                                                     "-"}
                                                             </p>
-                                                            <p className="text-sm text-gray-800 font-medium mb-2">
-                                                                {item.survey
-                                                                    ?.title ||
-                                                                    "-"}
-                                                            </p>
+                                                            <div className="mb-2 flex flex-wrap items-center gap-2">
+                                                                <p className="text-sm text-gray-800 font-medium">
+                                                                    {item
+                                                                        .survey
+                                                                        ?.title ||
+                                                                        "-"}
+                                                                </p>
+                                                                <PremiumTierBadge
+                                                                    tier={
+                                                                        item
+                                                                            .survey
+                                                                            ?.premium_tier
+                                                                    }
+                                                                    isPremium={
+                                                                        item
+                                                                            .survey
+                                                                            ?.is_premium
+                                                                    }
+                                                                />
+                                                            </div>
                                                             <div className="grid grid-cols-2 gap-2 text-xs">
                                                                 <span className="text-gray-500">
                                                                     Metode
@@ -493,12 +509,26 @@ export default function Dashboard({
                                                                         </p>
                                                                     </td>
                                                                     <td className="px-4 py-3">
-                                                                        <p className="font-medium text-gray-900">
-                                                                            {item
-                                                                                .survey
-                                                                                ?.title ||
-                                                                                "-"}
-                                                                        </p>
+                                                                        <div className="flex flex-wrap items-center gap-2">
+                                                                            <p className="font-medium text-gray-900">
+                                                                                {item
+                                                                                    .survey
+                                                                                    ?.title ||
+                                                                                    "-"}
+                                                                            </p>
+                                                                            <PremiumTierBadge
+                                                                                tier={
+                                                                                    item
+                                                                                        .survey
+                                                                                        ?.premium_tier
+                                                                                }
+                                                                                isPremium={
+                                                                                    item
+                                                                                        .survey
+                                                                                        ?.is_premium
+                                                                                }
+                                                                            />
+                                                                        </div>
                                                                         {item
                                                                             .survey
                                                                             ?.slug ? (
@@ -708,11 +738,14 @@ export default function Dashboard({
                                                             item.type
                                                         ] || item.type}
                                                     </span>
-                                                    {item.is_premium ? (
-                                                        <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded">
-                                                            PREMIUM
-                                                        </span>
-                                                    ) : null}
+                                                    <PremiumTierBadge
+                                                        tier={
+                                                            item.premium_tier
+                                                        }
+                                                        isPremium={
+                                                            item.is_premium
+                                                        }
+                                                    />
                                                 </div>
                                                 <p className="text-xs text-gray-500 mt-2">
                                                     {new Date(
@@ -806,11 +839,15 @@ export default function Dashboard({
                                                     >
                                                         <td className="px-6 py-4 font-medium text-gray-900">
                                                             {item.title}
-                                                            {item.is_premium ? (
-                                                                <span className="ml-2 bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-200">
-                                                                    PREMIUM
-                                                                </span>
-                                                            ) : null}
+                                                            <PremiumTierBadge
+                                                                tier={
+                                                                    item.premium_tier
+                                                                }
+                                                                isPremium={
+                                                                    item.is_premium
+                                                                }
+                                                                className="ml-2 align-middle"
+                                                            />
                                                         </td>
                                                         <td className="px-6 py-4">
                                                             <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded text-xs font-semibold border border-slate-200">

@@ -140,7 +140,9 @@ export default function SurveyForm({ survey = null, existingAssets = null }) {
         published_year: survey?.published_year || "",
         research_topic: survey?.research_topic || "",
         tags: initialTags,
-        is_premium: survey ? Boolean(survey.is_premium) : false,
+        premium_tier:
+            survey?.premium_tier ||
+            (survey?.is_premium ? "premium" : "free"),
         chart_type: survey?.chart_type || "table",
         is_interactive: survey ? Boolean(survey.is_interactive) : true,
         file: null,
@@ -926,27 +928,50 @@ export default function SurveyForm({ survey = null, existingAssets = null }) {
 
                             <section
                                 className={`p-6 rounded-xl border shadow-sm ${
-                                    data.is_premium
+                                    data.premium_tier !== "free"
                                         ? "bg-amber-50 border-amber-200"
                                         : "bg-white border-gray-100"
                                 }`}
                             >
-                                <label className="flex items-center justify-between cursor-pointer">
-                                    <span className="font-bold text-gray-900 flex items-center gap-2">
-                                        {data.is_premium ? (
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-2">
+                                        {data.premium_tier !== "free" ? (
                                             <Lock className="w-5 h-5 text-amber-600" />
                                         ) : (
                                             <Unlock className="w-5 h-5 text-gray-400" />
                                         )}
-                                        Kunci Premium
-                                    </span>
-                                    <input
-                                        type="checkbox"
-                                        checked={data.is_premium}
-                                        onChange={(e) => setData("is_premium", e.target.checked)}
-                                        className="rounded"
-                                    />
-                                </label>
+                                        <span className="font-bold text-gray-900">
+                                            Akses Konten
+                                        </span>
+                                    </div>
+
+                                    <select
+                                        value={data.premium_tier}
+                                        onChange={(e) =>
+                                            setData("premium_tier", e.target.value)
+                                        }
+                                        className="w-full rounded-lg border-gray-300 text-sm"
+                                    >
+                                        <option value="free">Gratis (Terbuka)</option>
+                                        <option value="premium">Premium (Flow Pembelian)</option>
+                                        <option value="special">Spesial (Arahkan ke WhatsApp)</option>
+                                    </select>
+
+                                    {data.premium_tier === "special" ? (
+                                        <p className="text-xs text-amber-700">
+                                            Konten spesial akan menampilkan tombol WhatsApp
+                                            untuk menghubungi admin, bukan flow pembelian biasa.
+                                        </p>
+                                    ) : data.premium_tier === "premium" ? (
+                                        <p className="text-xs text-amber-700">
+                                            Konten premium akan mengikuti flow membership / pembelian artikel.
+                                        </p>
+                                    ) : (
+                                        <p className="text-xs text-gray-500">
+                                            Konten gratis dapat diakses semua pengunjung.
+                                        </p>
+                                    )}
+                                </div>
                             </section>
 
                             <button

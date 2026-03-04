@@ -144,17 +144,16 @@ export default function Footer() {
                             <li className="flex items-start gap-3">
                                 <MapPin className="w-5 h-5 text-blue-500 shrink-0" />
                                 <span>
-                                    Jl. Surya Kencana No. 99, Sukabumi, Jawa
-                                    Barat
+                                    Jl. Cianjur Sukabumi No. 98
                                 </span>
                             </li>
                             <li className="flex items-center gap-3">
                                 <Mail className="w-5 h-5 text-blue-500 shrink-0" />
-                                <span>hello@brightnest.id</span>
+                                <span>brightnestinstitute@gmail.com</span>
                             </li>
                             <li className="flex items-center gap-3">
                                 <Phone className="w-5 h-5 text-blue-500 shrink-0" />
-                                <span>(0266) 123-4567</span>
+                                <span>08133113110</span>
                             </li>
                         </ul>
                     </div>

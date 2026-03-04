@@ -50,6 +50,29 @@ const chartColors = [
     "rgba(255, 159, 64, 0.8)", // Orange
 ];
 
+const SPECIAL_WHATSAPP_NUMBER = "628133113110";
+
+const buildSpecialWaLink = (title, userName) => {
+    const safeTitle = String(title || "artikel ini").trim();
+    const safeUser = String(userName || "").trim();
+    const articleUrl = typeof window !== "undefined" ? window.location.href : "";
+    const messageParts = [`saya tertarik terkait artikel ${safeTitle}`];
+
+    if (safeUser) {
+        messageParts.push(`nama saya ${safeUser}`);
+    }
+
+    if (articleUrl) {
+        messageParts.push(`link artikel ${articleUrl}`);
+    }
+
+    messageParts.push("mohon info detail akses kategori spesial");
+
+    return `https://wa.me/${SPECIAL_WHATSAPP_NUMBER}?text=${encodeURIComponent(
+        messageParts.join(", ") + ".",
+    )}`;
+};
+
 export default function KilasDataIndex({
     surveys,
     activeFilters,
@@ -57,7 +80,7 @@ export default function KilasDataIndex({
     chartData,
     premiumPricing,
 }) {
-    const { globalCategoryTree = [] } = usePage().props;
+    const { globalCategoryTree = [], auth = {} } = usePage().props;
     const categoryTree = useMemo(
         () =>
             globalCategoryTree.map((cat) => ({
@@ -253,6 +276,13 @@ export default function KilasDataIndex({
     const monthlyPlan = plans.find((item) => item.code === "monthly") || plans[0] || null;
     const yearlyPlan = plans.find((item) => item.code === "yearly") || plans[1] || null;
     const singlePrice = Number(premiumPricing?.single_article || 10000);
+    const isSpecialLocked =
+        selectedData?.premium_tier === "special" ||
+        selectedData?.is_special_premium === true;
+    const specialWaLink = buildSpecialWaLink(
+        selectedData?.title,
+        auth?.user?.name,
+    );
     const formatRupiah = (value) =>
         new Intl.NumberFormat("id-ID", {
             style: "currency",
@@ -445,91 +475,117 @@ export default function KilasDataIndex({
                                         </div>
 
                                         <div className="px-4 py-5 bg-slate-50/80">
-                                            <p className="text-sm text-slate-700 text-center">
-                                                Untuk melanjutkan, pilih membership atau beli artikel ini secara satuan.
-                                            </p>
-
-                                            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                                                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                                                    <p className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                                                        <Gem className="w-4 h-4 text-blue-600" />
-                                                        Paket Tahunan
+                                            {isSpecialLocked ? (
+                                                <div className="rounded-xl border border-emerald-200 bg-white p-5">
+                                                    <p className="text-sm font-bold text-slate-900">
+                                                        Kategori Spesial
                                                     </p>
-                                                    <p className="text-xs text-slate-600 mt-2">Paket tahunan dengan harga lebih hemat.</p>
-                                                    <p className="mt-3 text-lg font-extrabold text-slate-900">
-                                                        {formatRupiah(yearlyPlan?.amount || 0)}
+                                                    <p className="mt-2 text-sm text-slate-700">
+                                                        Konten ini termasuk kategori spesial.
+                                                        Silakan hubungi admin Brightnest melalui
+                                                        WhatsApp untuk akses lanjutan.
                                                     </p>
-                                                    <p className="text-xs text-slate-500">per tahun</p>
                                                     <a
-                                                        href={route("premium.purchase", {
-                                                            survey: selectedData.slug,
-                                                            mode: "membership",
-                                                        })}
-                                                        className="mt-3 inline-flex w-full justify-center rounded-lg border border-blue-600 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+                                                        href={specialWaLink}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="mt-4 inline-flex w-full justify-center rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
                                                     >
-                                                        Pilih Tahunan
+                                                        Hubungi via WhatsApp
                                                     </a>
+                                                    <p className="mt-2 text-xs text-slate-500 text-center">
+                                                        WhatsApp: 08133113110
+                                                    </p>
                                                 </div>
+                                            ) : (
+                                                <>
+                                                    <p className="text-sm text-slate-700 text-center">
+                                                        Untuk melanjutkan, pilih membership atau beli artikel ini secara satuan.
+                                                    </p>
 
-                                                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                                                    <p className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                                                        <ShieldCheck className="w-4 h-4 text-blue-600" />
-                                                        Paket Bulanan
-                                                    </p>
-                                                    <p className="text-xs text-slate-600 mt-2">Langganan bulanan untuk akses semua konten premium.</p>
-                                                    <p className="mt-3 text-lg font-extrabold text-slate-900">
-                                                        {formatRupiah(monthlyPlan?.amount || 0)}
-                                                    </p>
-                                                    <p className="text-xs text-slate-500">per bulan</p>
-                                                    <a
-                                                        href={route("premium.purchase", {
-                                                            survey: selectedData.slug,
-                                                            mode: "membership",
-                                                        })}
-                                                        className="mt-3 inline-flex w-full justify-center rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                                                    >
-                                                        Pilih Bulanan
-                                                    </a>
-                                                </div>
+                                                    <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                        <div className="rounded-xl border border-slate-200 bg-white p-4">
+                                                            <p className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                                                <Gem className="w-4 h-4 text-blue-600" />
+                                                                Paket Tahunan
+                                                            </p>
+                                                            <p className="text-xs text-slate-600 mt-2">Paket tahunan dengan harga lebih hemat.</p>
+                                                            <p className="mt-3 text-lg font-extrabold text-slate-900">
+                                                                {formatRupiah(yearlyPlan?.amount || 0)}
+                                                            </p>
+                                                            <p className="text-xs text-slate-500">per tahun</p>
+                                                            <a
+                                                                href={route("premium.purchase", {
+                                                                    survey: selectedData.slug,
+                                                                    mode: "membership",
+                                                                })}
+                                                                className="mt-3 inline-flex w-full justify-center rounded-lg border border-blue-600 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+                                                            >
+                                                                Pilih Tahunan
+                                                            </a>
+                                                        </div>
 
-                                                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                                                    <p className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                                                        <ShoppingBag className="w-4 h-4 text-blue-600" />
-                                                        Beli per Artikel
-                                                    </p>
-                                                    <p className="text-xs text-slate-600 mt-2 line-clamp-2">
-                                                        Beli akses penuh artikel: "{selectedData.title}".
-                                                    </p>
-                                                    <p className="mt-3 text-lg font-extrabold text-slate-900">
-                                                        {formatRupiah(singlePrice)}
-                                                    </p>
-                                                    <p className="text-xs text-slate-500">sekali beli</p>
-                                                    <a
-                                                        href={route("premium.article.purchase", selectedData.slug)}
-                                                        className="mt-3 inline-flex w-full justify-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-                                                    >
-                                                        Beli Artikel Ini
-                                                    </a>
-                                                </div>
-                                            </div>
+                                                        <div className="rounded-xl border border-slate-200 bg-white p-4">
+                                                            <p className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                                                <ShieldCheck className="w-4 h-4 text-blue-600" />
+                                                                Paket Bulanan
+                                                            </p>
+                                                            <p className="text-xs text-slate-600 mt-2">Langganan bulanan untuk akses semua konten premium.</p>
+                                                            <p className="mt-3 text-lg font-extrabold text-slate-900">
+                                                                {formatRupiah(monthlyPlan?.amount || 0)}
+                                                            </p>
+                                                            <p className="text-xs text-slate-500">per bulan</p>
+                                                            <a
+                                                                href={route("premium.purchase", {
+                                                                    survey: selectedData.slug,
+                                                                    mode: "membership",
+                                                                })}
+                                                                className="mt-3 inline-flex w-full justify-center rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                                                            >
+                                                                Pilih Bulanan
+                                                            </a>
+                                                        </div>
 
-                                            <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
-                                                <p className="text-xs text-slate-500 mb-2">Metode pembayaran:</p>
-                                                <div className="flex flex-wrap items-center gap-3">
-                                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-                                                        <CreditCard className="h-3.5 w-3.5" />
-                                                        QRIS / E-Wallet
-                                                    </span>
-                                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-                                                        <CreditCard className="h-3.5 w-3.5" />
-                                                        Transfer Bank
-                                                    </span>
-                                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-                                                        <CreditCard className="h-3.5 w-3.5" />
-                                                        Kartu Debit/Kredit
-                                                    </span>
-                                                </div>
-                                            </div>
+                                                        <div className="rounded-xl border border-slate-200 bg-white p-4">
+                                                            <p className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                                                <ShoppingBag className="w-4 h-4 text-blue-600" />
+                                                                Beli per Artikel
+                                                            </p>
+                                                            <p className="text-xs text-slate-600 mt-2 line-clamp-2">
+                                                                Beli akses penuh artikel: "{selectedData.title}".
+                                                            </p>
+                                                            <p className="mt-3 text-lg font-extrabold text-slate-900">
+                                                                {formatRupiah(singlePrice)}
+                                                            </p>
+                                                            <p className="text-xs text-slate-500">sekali beli</p>
+                                                            <a
+                                                                href={route("premium.article.purchase", selectedData.slug)}
+                                                                className="mt-3 inline-flex w-full justify-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                                                            >
+                                                                Beli Artikel Ini
+                                                            </a>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
+                                                        <p className="text-xs text-slate-500 mb-2">Metode pembayaran:</p>
+                                                        <div className="flex flex-wrap items-center gap-3">
+                                                            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                                                                <CreditCard className="h-3.5 w-3.5" />
+                                                                QRIS / E-Wallet
+                                                            </span>
+                                                            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                                                                <CreditCard className="h-3.5 w-3.5" />
+                                                                Transfer Bank
+                                                            </span>
+                                                            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                                                                <CreditCard className="h-3.5 w-3.5" />
+                                                                Kartu Debit/Kredit
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 ) : (

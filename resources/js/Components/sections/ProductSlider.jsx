@@ -62,6 +62,7 @@ export default function ProductSlider({
         views: item.views || 0,
         excerpt: item.notes || "",
         isPremium: item.is_premium,
+        premiumTier: item.premium_tier || (item.is_premium ? "premium" : "free"),
     });
 
     if (!data || data.length === 0) return null;

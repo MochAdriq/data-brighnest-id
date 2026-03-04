@@ -67,6 +67,8 @@ const DataCard = ({ item }) => {
     };
 
     const productInfo = getProductLabel(item.type);
+    const premiumTier = item.premiumTier || (item.isPremium ? "premium" : "free");
+    const premiumLabel = premiumTier === "special" ? "Spesial" : "Premium Data";
 
     return (
         // GANTI BAGIAN INI:
@@ -113,7 +115,7 @@ const DataCard = ({ item }) => {
                             <Lock className="w-6 h-6 text-white" />
                         </div>
                         <span className="text-sm font-bold tracking-wide">
-                            Premium Data
+                            {premiumLabel}
                         </span>
                     </div>
                 )}

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, router, useForm } from "@inertiajs/react";
+import PremiumTierBadge from "@/Components/ui/PremiumTierBadge";
 
 function ActionButtons({ item, approveRouteName, rejectRouteName }) {
     const approveForm = useForm({ admin_note: "" });
@@ -350,9 +351,15 @@ export default function AdminSubscriptions({
                                     <p className="text-xs text-slate-500 mb-1">
                                         {item.user?.email || "-"}
                                     </p>
-                                    <p className="text-sm font-medium text-slate-800 mb-2">
-                                        {item.survey?.title || "Artikel tidak ditemukan"}
-                                    </p>
+                                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                                        <p className="text-sm font-medium text-slate-800">
+                                            {item.survey?.title || "Artikel tidak ditemukan"}
+                                        </p>
+                                        <PremiumTierBadge
+                                            tier={item.survey?.premium_tier}
+                                            isPremium={item.survey?.is_premium}
+                                        />
+                                    </div>
                                     <div className="grid grid-cols-2 gap-2 text-xs mb-3">
                                         <span className="text-slate-500">Status</span>
                                         <span className="font-semibold uppercase text-right">
@@ -444,9 +451,15 @@ export default function AdminSubscriptions({
                                                     </p>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <p className="font-medium text-slate-900">
-                                                        {item.survey?.title || "-"}
-                                                    </p>
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <p className="font-medium text-slate-900">
+                                                            {item.survey?.title || "-"}
+                                                        </p>
+                                                        <PremiumTierBadge
+                                                            tier={item.survey?.premium_tier}
+                                                            isPremium={item.survey?.is_premium}
+                                                        />
+                                                    </div>
                                                     {item.survey?.slug ? (
                                                         <Link
                                                             href={route(

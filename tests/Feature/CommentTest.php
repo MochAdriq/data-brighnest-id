@@ -65,4 +65,26 @@ class CommentTest extends TestCase
         $response->assertNotFound();
         $this->assertDatabaseCount('comments', 0);
     }
+
+    public function test_authenticated_user_can_submit_comment_on_research_publication(): void
+    {
+        $author = User::factory()->create();
+        $commenter = User::factory()->create();
+        $survey = Survey::factory()->create([
+            'user_id' => $author->id,
+            'type' => 'publikasi_riset',
+        ]);
+
+        $response = $this->actingAs($commenter)->post(
+            route('surveys.comments.store', $survey->slug),
+            ['body' => 'Komentar untuk publikasi riset.']
+        );
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('comments', [
+            'survey_id' => $survey->id,
+            'user_id' => $commenter->id,
+            'body' => 'Komentar untuk publikasi riset.',
+        ]);
+    }
 }

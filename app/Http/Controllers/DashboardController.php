@@ -45,7 +45,7 @@ class DashboardController extends Controller
             ->latest()
             ->take(6)
             ->get();
-        $pendingArticleRequests = ArticlePurchaseRequest::with(['user:id,name,email', 'survey:id,title,slug,type'])
+        $pendingArticleRequests = ArticlePurchaseRequest::with(['user:id,name,email', 'survey:id,title,slug,type,is_premium,premium_tier'])
             ->where('status', 'pending')
             ->latest()
             ->take(6)

@@ -11,6 +11,10 @@ class Survey extends Model
 {
     use HasFactory;
 
+    public const PREMIUM_TIER_FREE = 'free';
+    public const PREMIUM_TIER_PREMIUM = 'premium';
+    public const PREMIUM_TIER_SPECIAL = 'special';
+
     protected $fillable = [
         'user_id', 'type',
         'chart_type',      // <--- TAMBAHKAN INI
@@ -19,7 +23,7 @@ class Survey extends Model
         'published_year', 'research_topic',
         'notes', // Tetap notes
         'show_notes',
-        'lead', 'content', 'period', 'pic', 'is_premium', 'tags',
+        'lead', 'content', 'period', 'pic', 'is_premium', 'premium_tier', 'tags',
         'csv_data', 'file_path', 'pdf_path', 'image', 'views', 'download_count',
         'image_caption', 'image_copyright',
     ];
@@ -46,7 +50,15 @@ class Survey extends Model
             if (empty($survey->slug)) {
                 $survey->slug = Str::slug($survey->title);
             }
-            
+
+            $tier = strtolower((string) ($survey->premium_tier ?? ''));
+            if (!in_array($tier, self::premiumTierOptions(), true)) {
+                $tier = (bool) $survey->is_premium ? self::PREMIUM_TIER_PREMIUM : self::PREMIUM_TIER_FREE;
+            }
+
+            $survey->premium_tier = $tier;
+            $survey->is_premium = $tier !== self::PREMIUM_TIER_FREE;
+             
             // Cek kalau ada slug kembar (misal judul sama), tambahkan angka di belakang
             $originalSlug = $survey->slug;
             $count = 1;
@@ -77,5 +89,26 @@ class Survey extends Model
     public function articleEntitlements(): HasMany
     {
         return $this->hasMany(ArticleEntitlement::class);
+    }
+
+    public static function premiumTierOptions(): array
+    {
+        return [
+            self::PREMIUM_TIER_FREE,
+            self::PREMIUM_TIER_PREMIUM,
+            self::PREMIUM_TIER_SPECIAL,
+        ];
+    }
+
+    public function resolvedPremiumTier(): string
+    {
+        $tier = strtolower((string) ($this->premium_tier ?? ''));
+        if (in_array($tier, self::premiumTierOptions(), true)) {
+            return $tier;
+        }
+
+        return (bool) $this->is_premium
+            ? self::PREMIUM_TIER_PREMIUM
+            : self::PREMIUM_TIER_FREE;
     }
 }

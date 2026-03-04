@@ -2,6 +2,7 @@ import { Head, Link, router, useForm } from "@inertiajs/react";
 import { Edit, Eye, PlusCircle, Trash2 } from "lucide-react";
 import RoleWorkspaceLayout from "@/Layouts/RoleWorkspaceLayout";
 import PaginationLinks from "@/Components/PaginationLinks";
+import PremiumTierBadge from "@/Components/ui/PremiumTierBadge";
 import { useState } from "react";
 
 export default function PublisherDashboard({
@@ -163,6 +164,10 @@ export default function PublisherDashboard({
                                     <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded uppercase">
                                         {item.type}
                                     </span>
+                                    <PremiumTierBadge
+                                        tier={item.premium_tier}
+                                        isPremium={item.is_premium}
+                                    />
                                     <span className="text-slate-500">
                                         {new Date(
                                             item.created_at,
@@ -224,6 +229,11 @@ export default function PublisherDashboard({
                                     <tr key={item.id} className="border-b">
                                         <td className="px-4 py-3 font-semibold text-slate-800">
                                             {item.title}
+                                            <PremiumTierBadge
+                                                tier={item.premium_tier}
+                                                isPremium={item.is_premium}
+                                                className="ml-2 align-middle"
+                                            />
                                         </td>
                                         <td className="px-4 py-3 uppercase text-xs font-bold text-slate-500">
                                             {item.type}

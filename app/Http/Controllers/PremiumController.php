@@ -42,13 +42,26 @@ class PremiumController extends Controller
 
         if ($selectedArticleSlug !== '') {
             $selectedPremiumArticle = Survey::query()
-                ->select(['id', 'slug', 'title', 'type', 'category', 'is_premium'])
+                ->select(['id', 'slug', 'title', 'type', 'category', 'is_premium', 'premium_tier'])
                 ->where('slug', $selectedArticleSlug)
-                ->where('is_premium', true)
+                ->where(function ($query) {
+                    $query
+                        ->where('premium_tier', '!=', Survey::PREMIUM_TIER_FREE)
+                        ->orWhere(function ($legacy) {
+                            $legacy
+                                ->where('is_premium', true)
+                                ->where(function ($legacyTier) {
+                                    $legacyTier
+                                        ->whereNull('premium_tier')
+                                        ->orWhere('premium_tier', '');
+                                });
+                        });
+                })
                 ->first();
         }
 
         if ($selectedPremiumArticle) {
+            $premiumTier = $selectedPremiumArticle->resolvedPremiumTier();
             $hasEntitlement = $user->hasArticleEntitlement((int) $selectedPremiumArticle->id);
             $pendingRequest = $user->articlePurchaseRequests()
                 ->where('survey_id', $selectedPremiumArticle->id)
@@ -60,14 +73,19 @@ class PremiumController extends Controller
                 'already_owned' => $hasEntitlement,
                 'has_pending' => (bool) $pendingRequest,
                 'pending_request_id' => $pendingRequest?->id,
-                'can_submit' => !$active && !$hasEntitlement && !$pendingRequest,
+                'premium_tier' => $premiumTier,
+                'is_special' => $premiumTier === Survey::PREMIUM_TIER_SPECIAL,
+                'can_submit' => $premiumTier === Survey::PREMIUM_TIER_PREMIUM
+                    && !$active
+                    && !$hasEntitlement
+                    && !$pendingRequest,
             ];
         }
 
         $availablePremiumArticles = $this->availablePremiumArticlesForUser($user);
 
         $pendingArticleRequests = $user->articlePurchaseRequests()
-            ->with('survey:id,title,slug,type')
+            ->with('survey:id,title,slug,type,is_premium,premium_tier')
             ->where('status', 'pending')
             ->latest('created_at')
             ->take(10)
@@ -89,6 +107,11 @@ class PremiumController extends Controller
             'selectedArticlePurchaseState' => $selectedArticlePurchaseState,
             'availablePremiumArticles' => $availablePremiumArticles,
             'pendingArticleRequests' => $pendingArticleRequests,
+            'specialPremium' => [
+                'phone' => '08133113110',
+                'whatsapp_number' => '628133113110',
+                'chat_template' => 'saya tertarik terkait artikel {title}',
+            ],
         ]);
     }
 
@@ -116,8 +139,14 @@ class PremiumController extends Controller
 
     public function articlePurchaseForm(Request $request, Survey $survey)
     {
-        if (!(bool) $survey->is_premium) {
+        $premiumTier = $survey->resolvedPremiumTier();
+        if ($premiumTier === Survey::PREMIUM_TIER_FREE) {
             abort(404);
+        }
+        if ($premiumTier === Survey::PREMIUM_TIER_SPECIAL) {
+            return redirect()
+                ->route('surveys.show', $survey)
+                ->with('error', 'Artikel ini termasuk kategori spesial. Silakan hubungi WhatsApp untuk akses.');
         }
 
         $user = $request->user();
@@ -148,7 +177,7 @@ class PremiumController extends Controller
             ],
             'availablePremiumArticles' => $this->availablePremiumArticlesForUser($user, (int) $survey->id),
             'pendingArticleRequests' => $user->articlePurchaseRequests()
-                ->with('survey:id,title,slug,type')
+                ->with('survey:id,title,slug,type,is_premium,premium_tier')
                 ->where('status', 'pending')
                 ->latest('created_at')
                 ->take(10)
@@ -212,8 +241,12 @@ class PremiumController extends Controller
 
     public function submitArticle(Request $request, Survey $survey)
     {
-        if (!(bool) $survey->is_premium) {
+        $premiumTier = $survey->resolvedPremiumTier();
+        if ($premiumTier === Survey::PREMIUM_TIER_FREE) {
             return back()->with('error', 'Artikel ini bukan konten premium.');
+        }
+        if ($premiumTier === Survey::PREMIUM_TIER_SPECIAL) {
+            return back()->with('error', 'Artikel kategori spesial hanya dapat diakses melalui WhatsApp.');
         }
 
         $user = $request->user();
@@ -289,7 +322,7 @@ class PremiumController extends Controller
         $articleRequests = ArticlePurchaseRequest::with([
                 'user:id,name,email',
                 'verifier:id,name',
-                'survey:id,title,slug,type',
+                'survey:id,title,slug,type,is_premium,premium_tier',
                 'entitlement:id,purchase_request_id',
             ])
             ->when($filters['status'] !== '', function ($query) use ($filters) {
@@ -546,8 +579,20 @@ class PremiumController extends Controller
     private function availablePremiumArticlesForUser(User $user, ?int $includeSurveyId = null)
     {
         $query = Survey::query()
-            ->select(['id', 'slug', 'title', 'type', 'category', 'created_at'])
-            ->where('is_premium', true);
+            ->select(['id', 'slug', 'title', 'type', 'category', 'created_at', 'premium_tier'])
+            ->where(function ($premiumQuery) {
+                $premiumQuery
+                    ->where('premium_tier', Survey::PREMIUM_TIER_PREMIUM)
+                    ->orWhere(function ($legacy) {
+                        $legacy
+                            ->where('is_premium', true)
+                            ->where(function ($legacyTier) {
+                                $legacyTier
+                                    ->whereNull('premium_tier')
+                                    ->orWhere('premium_tier', '');
+                            });
+                    });
+            });
 
         if ($includeSurveyId) {
             $query->where(function ($subQuery) use ($user, $includeSurveyId) {

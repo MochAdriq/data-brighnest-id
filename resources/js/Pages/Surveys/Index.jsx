@@ -49,6 +49,7 @@ export default function Index({ surveys, filters, title }) {
         views: item.views || 0,
         excerpt: item.lead || item.notes || "Tidak ada deskripsi.",
         isPremium: item.is_premium,
+        premiumTier: item.premium_tier || (item.is_premium ? "premium" : "free"),
     });
 
     return (

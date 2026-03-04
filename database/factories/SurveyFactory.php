@@ -10,6 +10,7 @@ class SurveyFactory extends Factory
     public function definition(): array
     {
         $title = $this->faker->sentence(6); // Judul 6 kata
+        $isPremium = $this->faker->boolean(50);
         
         // Generator Data Grafik Palsu (JSON)
         // Format: [{"Tahun": "2020", "Nilai": 10}, ...]
@@ -40,7 +41,8 @@ class SurveyFactory extends Factory
             'content' => '<p>' . implode('</p><p>', $this->faker->paragraphs(8)) . '</p>', // Artikel panjang dummy
             'period' => '2024-2025',
             'pic' => 'Tim Data Brightnest',
-            'is_premium' => $this->faker->boolean(50), // 20% kemungkinan Premium
+            'is_premium' => $isPremium, // 50% kemungkinan Premium
+            'premium_tier' => null,
             'views' => $this->faker->numberBetween(100, 10000), // Views acak biar kelihatan rame
             'tags' => ['data', 'riset', '2025'],
             

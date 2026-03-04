@@ -39,6 +39,7 @@ class SurveyController extends Controller
             'lead',
             'notes',
             'is_premium',
+            'premium_tier',
         ]);
 
         if ($request->filled('q')) {
@@ -90,6 +91,7 @@ class SurveyController extends Controller
             $type = $request->type;
             $isSeries = $type === 'series';
             $isResearchPublication = $type === 'publikasi_riset';
+            $premiumTier = $this->resolvePremiumTierFromRequest($request);
 
             // 1. Handle upload sesuai tipe konten
             $fileData = ['file_path' => null, 'csv_data' => null];
@@ -126,7 +128,8 @@ class SurveyController extends Controller
                     : false,
                 'period'         => $isSeries ? $this->normalizeString($request->period) : null,
                 'pic'            => $this->normalizeString($request->pic),
-                'is_premium'     => filter_var($request->input('is_premium', false), FILTER_VALIDATE_BOOLEAN),
+                'is_premium'     => $premiumTier !== Survey::PREMIUM_TIER_FREE,
+                'premium_tier'   => $premiumTier,
                 'notes'          => $isSeries ? $this->sanitizePlainText($request->notes) : null,
                 'show_notes'     => $isSeries
                     ? filter_var($request->input('show_notes', false), FILTER_VALIDATE_BOOLEAN)
@@ -296,6 +299,7 @@ class SurveyController extends Controller
             $type = $request->type;
             $isSeries = $type === 'series';
             $isResearchPublication = $type === 'publikasi_riset';
+            $premiumTier = $this->resolvePremiumTierFromRequest($request, $survey);
 
             // 1. Handle upload sesuai tipe konten
             $fileData = ['file_path' => null, 'csv_data' => null];
@@ -332,7 +336,8 @@ class SurveyController extends Controller
             $survey->pic            = $this->normalizeString($request->pic);
             $survey->notes          = $isSeries ? $this->sanitizePlainText($request->notes) : null;
             $survey->lead           = $isSeries ? null : $this->sanitizePlainText($request->lead);
-            $survey->is_premium     = filter_var($request->input('is_premium', false), FILTER_VALIDATE_BOOLEAN);
+            $survey->is_premium     = $premiumTier !== Survey::PREMIUM_TIER_FREE;
+            $survey->premium_tier   = $premiumTier;
             $survey->period         = $isSeries ? $this->normalizeString($request->period) : null;
             $survey->tags           = $this->processTags($request->tags);
             $survey->show_notes     = $isSeries
@@ -552,6 +557,11 @@ class SurveyController extends Controller
         return [
             'single_article' => (int) config('premium.single_article_price', 10000),
             'plans' => $plans,
+            'special' => [
+                'phone' => '08133113110',
+                'whatsapp_number' => '628133113110',
+                'chat_template' => 'saya tertarik terkait artikel {title}',
+            ],
         ];
     }
 
@@ -613,6 +623,7 @@ class SurveyController extends Controller
                     'lead',
                     'notes',
                     'is_premium',
+                    'premium_tier',
                 ])
                 ->where('type', $type)
                 ->when($q !== '', function ($query) use ($q) {
@@ -663,6 +674,7 @@ class SurveyController extends Controller
             'image_copyright'=> 'nullable|string|max:255',
             'tags'           => 'nullable',
             'is_premium'     => 'boolean',
+            'premium_tier'   => 'nullable|string|in:free,premium,special',
             // Series wajib upload file (create), story/news pakai image.
             // Selalu nullable agar key kosong dari frontend tidak memicu false-positive validation.
             'file'           => [
@@ -1339,7 +1351,8 @@ class SurveyController extends Controller
      */
     private function isLocked(Survey $survey)
     {
-        if (!$survey->is_premium) {
+        $premiumTier = $this->resolveSurveyPremiumTier($survey);
+        if ($premiumTier === Survey::PREMIUM_TIER_FREE) {
             return false;
         }
 
@@ -1356,6 +1369,10 @@ class SurveyController extends Controller
         // Role editorial/admin punya privilege akses konten premium.
         if ($user->hasAnyRole(['super_admin', 'publisher', 'editor'])) {
             return false;
+        }
+
+        if ($premiumTier === Survey::PREMIUM_TIER_SPECIAL) {
+            return true;
         }
 
         if ($user->hasActiveSubscription()) {
@@ -1386,10 +1403,13 @@ class SurveyController extends Controller
     private function prepareArticlePayload(Survey $survey, $isLocked, $lockMode)
     {
         $payload = $survey->toArray();
+        $premiumTier = $this->resolveSurveyPremiumTier($survey);
         $isResearchPublication = $survey->type === 'publikasi_riset';
         $payload['has_publication_pdf'] = !empty($survey->pdf_path);
         // Jalur penyimpanan private tidak boleh diekspos langsung ke frontend.
         $payload['pdf_path'] = null;
+        $payload['premium_tier'] = $premiumTier;
+        $payload['is_special_premium'] = $premiumTier === Survey::PREMIUM_TIER_SPECIAL;
         if ($survey->type === 'series' && !$this->shouldShowSeriesNotes($survey)) {
             $payload['notes'] = null;
         }
@@ -1529,7 +1549,7 @@ class SurveyController extends Controller
         $cacheUntil = now()->addMinutes($cacheMinutes);
 
         // Widget ini hanya relevan untuk halaman detail story/news.
-        if (!$this->canCommentOnSurvey($survey)) {
+        if (!in_array($survey->type, ['story', 'news'], true)) {
             return [
                 'window_days' => $windowDays,
                 'per_widget' => $limit,
@@ -1641,7 +1661,32 @@ class SurveyController extends Controller
      */
     private function canCommentOnSurvey(Survey $survey)
     {
-        return in_array($survey->type, ['story', 'news'], true);
+        return in_array($survey->type, ['story', 'news', 'publikasi_riset'], true);
+    }
+
+    private function resolvePremiumTierFromRequest(Request $request, ?Survey $survey = null): string
+    {
+        $tier = strtolower(trim((string) $request->input('premium_tier', '')));
+        if (in_array($tier, Survey::premiumTierOptions(), true)) {
+            return $tier;
+        }
+
+        if ($request->has('is_premium')) {
+            return filter_var($request->input('is_premium'), FILTER_VALIDATE_BOOLEAN)
+                ? Survey::PREMIUM_TIER_PREMIUM
+                : Survey::PREMIUM_TIER_FREE;
+        }
+
+        if ($survey) {
+            return $this->resolveSurveyPremiumTier($survey);
+        }
+
+        return Survey::PREMIUM_TIER_FREE;
+    }
+
+    private function resolveSurveyPremiumTier(Survey $survey): string
+    {
+        return $survey->resolvedPremiumTier();
     }
 
     /**

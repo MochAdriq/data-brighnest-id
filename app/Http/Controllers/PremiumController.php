@@ -841,8 +841,10 @@ class PremiumController extends Controller
         return collect($channels)
             ->filter(fn ($item) => is_array($item) && !empty($item['code']))
             ->map(function (array $item) {
+                $normalizedCode = $this->normalizeXenditChannelCode((string) $item['code']);
+
                 return [
-                    'code' => strtoupper((string) $item['code']),
+                    'code' => $normalizedCode,
                     'label' => (string) ($item['label'] ?? $item['code']),
                 ];
             })
@@ -852,9 +854,9 @@ class PremiumController extends Controller
 
     private function resolveXenditChannelCode(string $channelCode): string
     {
-        $normalized = strtoupper(trim($channelCode));
+        $normalized = $this->normalizeXenditChannelCode($channelCode);
         if ($normalized === '') {
-            $normalized = strtoupper((string) config('premium.xendit.default_channel_code', 'ID_DANA'));
+            $normalized = $this->normalizeXenditChannelCode((string) config('premium.xendit.default_channel_code', 'DANA'));
         }
 
         $allowed = collect($this->xenditChannelsPayload())
@@ -865,6 +867,24 @@ class PremiumController extends Controller
             throw ValidationException::withMessages([
                 'channel_code' => 'Metode pembayaran yang dipilih tidak valid.',
             ]);
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeXenditChannelCode(string $channelCode): string
+    {
+        $normalized = strtoupper(trim($channelCode));
+        if ($normalized === '') {
+            return '';
+        }
+
+        // Backward compatibility: legacy channel code style "ID_DANA" -> "DANA".
+        if (str_starts_with($normalized, 'ID_')) {
+            $candidate = substr($normalized, 3);
+            if ($candidate !== '') {
+                return $candidate;
+            }
         }
 
         return $normalized;

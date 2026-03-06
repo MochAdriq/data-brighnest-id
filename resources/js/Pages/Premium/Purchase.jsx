@@ -211,9 +211,6 @@ export default function Purchase({
                                 {selectedArticlePurchaseState?.already_owned && (
                                     <p className="mt-1 text-xs text-emerald-700">Artikel ini sudah Anda miliki permanen.</p>
                                 )}
-                                {selectedArticlePurchaseState?.has_pending && (
-                                    <p className="mt-1 text-xs text-amber-700">Pengajuan artikel ini masih menunggu verifikasi.</p>
-                                )}
                                 {selectedIsSpecial && (
                                     <p className="mt-1 text-xs text-cyan-700">
                                         Artikel ini termasuk kategori spesial dan diarahkan ke WhatsApp admin.

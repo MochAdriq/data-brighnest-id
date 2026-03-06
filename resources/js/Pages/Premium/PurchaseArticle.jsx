@@ -43,8 +43,7 @@ export default function PurchaseArticle({
 
     const blocked =
         Boolean(activeSubscription) ||
-        Boolean(articlePurchaseState?.already_owned) ||
-        Boolean(articlePurchaseState?.has_pending);
+        Boolean(articlePurchaseState?.already_owned);
 
     const [articleQuery, setArticleQuery] = useState("");
     const [articleType, setArticleType] = useState("all");
@@ -121,12 +120,6 @@ export default function PurchaseArticle({
                             Artikel ini sudah Anda miliki permanen.
                         </div>
                     )}
-                    {articlePurchaseState?.has_pending && (
-                        <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 p-4 text-sm text-amber-200">
-                            Pengajuan artikel ini masih menunggu verifikasi.
-                        </div>
-                    )}
-
                     <section className="rounded-2xl border border-slate-700/70 bg-slate-900/80 p-6 shadow-2xl backdrop-blur-xl">
                         <h3 className="text-lg font-bold text-white">Pilih Artikel Satuan Lain</h3>
                         <p className="mt-1 text-sm text-slate-300">

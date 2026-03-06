@@ -43,6 +43,9 @@ class XenditWebhookController extends Controller
         $data = is_array($payload['data'] ?? null) ? $payload['data'] : [];
         $event = strtolower((string) ($payload['event'] ?? $request->header('webhook-event-type', '')));
         $status = $this->resolveStatus($event, $data);
+        $metadata = is_array($data['metadata'] ?? null) ? $data['metadata'] : [];
+        $subscriptionIdFromMetadata = (int) ($metadata['subscription_id'] ?? 0);
+        $purchaseRequestIdFromMetadata = (int) ($metadata['purchase_request_id'] ?? 0);
         $paymentRequestId = $this->firstNonEmptyString([
             $data['payment_request_id'] ?? null,
             data_get($data, 'payment_request.id'),
@@ -73,6 +76,7 @@ class XenditWebhookController extends Controller
         $handled = false;
         if ($paymentRequestId !== '' || $referenceId !== '' || $paymentId !== '') {
             $handled = $this->processSubscriptionWebhook(
+                $subscriptionIdFromMetadata,
                 $paymentRequestId,
                 $referenceId,
                 $paymentId,
@@ -81,6 +85,7 @@ class XenditWebhookController extends Controller
             ) || $handled;
 
             $handled = $this->processArticleWebhook(
+                $purchaseRequestIdFromMetadata,
                 $paymentRequestId,
                 $referenceId,
                 $paymentId,
@@ -93,6 +98,8 @@ class XenditWebhookController extends Controller
             'payment_request_id' => $paymentRequestId ?: null,
             'reference_id' => $referenceId ?: null,
             'payment_id' => $paymentId ?: null,
+            'subscription_id_metadata' => $subscriptionIdFromMetadata > 0 ? $subscriptionIdFromMetadata : null,
+            'purchase_request_id_metadata' => $purchaseRequestIdFromMetadata > 0 ? $purchaseRequestIdFromMetadata : null,
             'status' => $status,
             'event' => $event,
             'handled' => $handled,
@@ -120,13 +127,19 @@ class XenditWebhookController extends Controller
     }
 
     private function processSubscriptionWebhook(
+        int $subscriptionIdFromMetadata,
         string $paymentRequestId,
         string $referenceId,
         string $paymentId,
         ?string $status,
         array $payload,
     ): bool {
-        $subscription = $this->findSubscription($paymentRequestId, $referenceId, $paymentId);
+        $subscription = $this->findSubscription(
+            $subscriptionIdFromMetadata,
+            $paymentRequestId,
+            $referenceId,
+            $paymentId,
+        );
         if (!$subscription) {
             return false;
         }
@@ -163,13 +176,19 @@ class XenditWebhookController extends Controller
     }
 
     private function processArticleWebhook(
+        int $purchaseRequestIdFromMetadata,
         string $paymentRequestId,
         string $referenceId,
         string $paymentId,
         ?string $status,
         array $payload,
     ): bool {
-        $request = $this->findArticlePurchaseRequest($paymentRequestId, $referenceId, $paymentId);
+        $request = $this->findArticlePurchaseRequest(
+            $purchaseRequestIdFromMetadata,
+            $paymentRequestId,
+            $referenceId,
+            $paymentId,
+        );
         if (!$request) {
             return false;
         }
@@ -222,8 +241,20 @@ class XenditWebhookController extends Controller
         return true;
     }
 
-    private function findSubscription(string $paymentRequestId, string $referenceId, string $paymentId): ?Subscription
+    private function findSubscription(
+        int $subscriptionIdFromMetadata,
+        string $paymentRequestId,
+        string $referenceId,
+        string $paymentId,
+    ): ?Subscription
     {
+        if ($subscriptionIdFromMetadata > 0) {
+            $byId = Subscription::query()->find($subscriptionIdFromMetadata);
+            if ($byId) {
+                return $byId;
+            }
+        }
+
         $query = Subscription::query();
         $hasCondition = false;
 
@@ -252,8 +283,20 @@ class XenditWebhookController extends Controller
         return $query->latest('id')->first();
     }
 
-    private function findArticlePurchaseRequest(string $paymentRequestId, string $referenceId, string $paymentId): ?ArticlePurchaseRequest
+    private function findArticlePurchaseRequest(
+        int $purchaseRequestIdFromMetadata,
+        string $paymentRequestId,
+        string $referenceId,
+        string $paymentId,
+    ): ?ArticlePurchaseRequest
     {
+        if ($purchaseRequestIdFromMetadata > 0) {
+            $byId = ArticlePurchaseRequest::query()->find($purchaseRequestIdFromMetadata);
+            if ($byId) {
+                return $byId;
+            }
+        }
+
         $query = ArticlePurchaseRequest::query();
         $hasCondition = false;
 

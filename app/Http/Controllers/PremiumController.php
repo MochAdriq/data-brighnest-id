@@ -81,8 +81,7 @@ class PremiumController extends Controller
                 'is_special' => $premiumTier === Survey::PREMIUM_TIER_SPECIAL,
                 'can_submit' => $premiumTier === Survey::PREMIUM_TIER_PREMIUM
                     && !$active
-                    && !$hasEntitlement
-                    && !$pendingRequest,
+                    && !$hasEntitlement,
             ];
         }
 
@@ -236,10 +235,6 @@ class PremiumController extends Controller
 
         $plan = $this->getMembershipPlan($validated['plan_code']);
         $user = $request->user();
-        $hasPending = $user->subscriptions()->where('status', 'pending')->exists();
-        if ($hasPending) {
-            return back()->with('error', 'Anda masih punya pengajuan premium yang menunggu verifikasi admin.');
-        }
 
         $proofPath = $request->file('proof_file')->store('private/payments/memberships');
 
@@ -276,10 +271,6 @@ class PremiumController extends Controller
 
         $plan = $this->getMembershipPlan($validated['plan_code']);
         $user = $request->user();
-        $hasPending = $user->subscriptions()->where('status', 'pending')->exists();
-        if ($hasPending) {
-            return back()->with('error', 'Anda masih punya pengajuan premium yang menunggu verifikasi admin.');
-        }
 
         $channelCode = $this->resolveXenditChannelCode((string) $validated['channel_code']);
         $referenceId = 'membership_' . (string) Str::uuid();
@@ -374,14 +365,6 @@ class PremiumController extends Controller
             return back()->with('error', 'Artikel ini sudah Anda miliki secara permanen.');
         }
 
-        $hasPendingRequest = $user->articlePurchaseRequests()
-            ->where('survey_id', $survey->id)
-            ->where('status', 'pending')
-            ->exists();
-        if ($hasPendingRequest) {
-            return back()->with('error', 'Anda sudah mengirim permintaan pembelian artikel ini dan masih menunggu verifikasi.');
-        }
-
         $validated = $request->validate([
             'payment_method' => 'required|string|max:80',
             'transfer_date' => 'required|date',
@@ -428,14 +411,6 @@ class PremiumController extends Controller
 
         if ($user->hasArticleEntitlement((int) $survey->id)) {
             return back()->with('error', 'Artikel ini sudah Anda miliki secara permanen.');
-        }
-
-        $hasPendingRequest = $user->articlePurchaseRequests()
-            ->where('survey_id', $survey->id)
-            ->where('status', 'pending')
-            ->exists();
-        if ($hasPendingRequest) {
-            return back()->with('error', 'Anda sudah mengirim permintaan pembelian artikel ini dan masih menunggu verifikasi.');
         }
 
         $validated = $request->validate([

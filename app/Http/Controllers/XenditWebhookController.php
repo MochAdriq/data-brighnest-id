@@ -43,12 +43,35 @@ class XenditWebhookController extends Controller
         $data = is_array($payload['data'] ?? null) ? $payload['data'] : [];
         $event = strtolower((string) ($payload['event'] ?? $request->header('webhook-event-type', '')));
         $status = $this->resolveStatus($event, $data);
-        $paymentRequestId = (string) ($data['payment_request_id'] ?? $data['id'] ?? '');
-        $referenceId = (string) ($data['reference_id'] ?? '');
-        $paymentId = (string) ($data['payment_id'] ?? $data['latest_payment_id'] ?? '');
+        $paymentRequestId = $this->firstNonEmptyString([
+            $data['payment_request_id'] ?? null,
+            data_get($data, 'payment_request.id'),
+            data_get($data, 'payment_request.payment_request_id'),
+            data_get($payload, 'payment_request_id'),
+            data_get($payload, 'data.id'),
+        ]);
+        $referenceId = $this->firstNonEmptyString([
+            $data['reference_id'] ?? null,
+            data_get($data, 'payment_request.reference_id'),
+            data_get($data, 'metadata.reference_id'),
+            data_get($payload, 'data.metadata.reference_id'),
+            data_get($payload, 'reference_id'),
+        ]);
+        $paymentId = $this->firstNonEmptyString([
+            $data['payment_id'] ?? null,
+            $data['latest_payment_id'] ?? null,
+            data_get($data, 'payment.id'),
+            data_get($payload, 'data.payment_id'),
+        ]);
+
+        // Pada sebagian event, data.id berisi payment id (prefix py-), bukan payment request id (prefix pr-).
+        if ($paymentId === '' && str_starts_with($paymentRequestId, 'py-')) {
+            $paymentId = $paymentRequestId;
+            $paymentRequestId = '';
+        }
 
         $handled = false;
-        if ($paymentRequestId !== '' || $referenceId !== '') {
+        if ($paymentRequestId !== '' || $referenceId !== '' || $paymentId !== '') {
             $handled = $this->processSubscriptionWebhook(
                 $paymentRequestId,
                 $referenceId,
@@ -69,6 +92,7 @@ class XenditWebhookController extends Controller
         Log::info('Xendit payment request webhook received.', [
             'payment_request_id' => $paymentRequestId ?: null,
             'reference_id' => $referenceId ?: null,
+            'payment_id' => $paymentId ?: null,
             'status' => $status,
             'event' => $event,
             'handled' => $handled,
@@ -102,7 +126,7 @@ class XenditWebhookController extends Controller
         ?string $status,
         array $payload,
     ): bool {
-        $subscription = $this->findSubscription($paymentRequestId, $referenceId);
+        $subscription = $this->findSubscription($paymentRequestId, $referenceId, $paymentId);
         if (!$subscription) {
             return false;
         }
@@ -145,7 +169,7 @@ class XenditWebhookController extends Controller
         ?string $status,
         array $payload,
     ): bool {
-        $request = $this->findArticlePurchaseRequest($paymentRequestId, $referenceId);
+        $request = $this->findArticlePurchaseRequest($paymentRequestId, $referenceId, $paymentId);
         if (!$request) {
             return false;
         }
@@ -198,41 +222,82 @@ class XenditWebhookController extends Controller
         return true;
     }
 
-    private function findSubscription(string $paymentRequestId, string $referenceId): ?Subscription
+    private function findSubscription(string $paymentRequestId, string $referenceId, string $paymentId): ?Subscription
     {
         $query = Subscription::query();
+        $hasCondition = false;
 
         if ($paymentRequestId !== '') {
             $query->where('xendit_payment_request_id', $paymentRequestId);
+            $hasCondition = true;
         }
 
         if ($referenceId !== '') {
-            if ($paymentRequestId !== '') {
+            if ($hasCondition) {
                 $query->orWhere('xendit_reference_id', $referenceId);
             } else {
                 $query->where('xendit_reference_id', $referenceId);
+            }
+            $hasCondition = true;
+        }
+
+        if ($paymentId !== '') {
+            if ($hasCondition) {
+                $query->orWhere('xendit_latest_payment_id', $paymentId);
+            } else {
+                $query->where('xendit_latest_payment_id', $paymentId);
             }
         }
 
         return $query->latest('id')->first();
     }
 
-    private function findArticlePurchaseRequest(string $paymentRequestId, string $referenceId): ?ArticlePurchaseRequest
+    private function findArticlePurchaseRequest(string $paymentRequestId, string $referenceId, string $paymentId): ?ArticlePurchaseRequest
     {
         $query = ArticlePurchaseRequest::query();
+        $hasCondition = false;
 
         if ($paymentRequestId !== '') {
             $query->where('xendit_payment_request_id', $paymentRequestId);
+            $hasCondition = true;
         }
 
         if ($referenceId !== '') {
-            if ($paymentRequestId !== '') {
+            if ($hasCondition) {
                 $query->orWhere('xendit_reference_id', $referenceId);
             } else {
                 $query->where('xendit_reference_id', $referenceId);
             }
+            $hasCondition = true;
+        }
+
+        if ($paymentId !== '') {
+            if ($hasCondition) {
+                $query->orWhere('xendit_latest_payment_id', $paymentId);
+            } else {
+                $query->where('xendit_latest_payment_id', $paymentId);
+            }
         }
 
         return $query->latest('id')->first();
+    }
+
+    /**
+     * @param array<int, mixed> $values
+     */
+    private function firstNonEmptyString(array $values): string
+    {
+        foreach ($values as $value) {
+            if (!is_scalar($value)) {
+                continue;
+            }
+
+            $normalized = trim((string) $value);
+            if ($normalized !== '') {
+                return $normalized;
+            }
+        }
+
+        return '';
     }
 }

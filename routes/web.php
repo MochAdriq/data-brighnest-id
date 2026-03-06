@@ -128,4 +128,9 @@ Route::post('/webhooks/xendit/payment-request', [XenditWebhookController::class,
     ->name('webhooks.xendit.payment-request')
     ->withoutMiddleware([VerifyCsrfToken::class]);
 
+// Backward-compatible alias agar konfigurasi lama "/webhooks/xendit" tetap diproses.
+Route::post('/webhooks/xendit', [XenditWebhookController::class, 'paymentRequestStatus'])
+    ->name('webhooks.xendit.legacy')
+    ->withoutMiddleware([VerifyCsrfToken::class]);
+
 require __DIR__.'/auth.php';

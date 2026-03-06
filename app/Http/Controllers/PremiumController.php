@@ -7,10 +7,14 @@ use App\Models\ArticlePurchaseRequest;
 use App\Models\Subscription;
 use App\Models\Survey;
 use App\Models\User;
+use App\Services\XenditPaymentRequestService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use RuntimeException;
 
 class PremiumController extends Controller
 {
@@ -112,6 +116,10 @@ class PremiumController extends Controller
                 'whatsapp_number' => '628133113110',
                 'chat_template' => 'saya tertarik terkait artikel {title}',
             ],
+            'xendit' => [
+                'enabled' => $this->isXenditEnabled(),
+                'channels' => $this->xenditChannelsPayload(),
+            ],
         ]);
     }
 
@@ -134,6 +142,10 @@ class PremiumController extends Controller
 
         return Inertia::render('Premium/Checkout', [
             'plan' => $selectedPlan,
+            'xendit' => [
+                'enabled' => $this->isXenditEnabled(),
+                'channels' => $this->xenditChannelsPayload(),
+            ],
         ]);
     }
 
@@ -183,6 +195,10 @@ class PremiumController extends Controller
                 ->take(10)
                 ->get()
                 ->values(),
+            'xendit' => [
+                'enabled' => $this->isXenditEnabled(),
+                'channels' => $this->xenditChannelsPayload(),
+            ],
         ]);
     }
 
@@ -201,6 +217,10 @@ class PremiumController extends Controller
 
     public function submitMembership(Request $request)
     {
+        if ($this->isXenditEnabled()) {
+            return $this->submitMembershipViaXendit($request);
+        }
+
         $validated = $request->validate([
             'plan_code' => 'required|string|in:monthly,yearly',
             'payment_method' => 'required|string|max:80',
@@ -239,8 +259,100 @@ class PremiumController extends Controller
         return back()->with('success', "Pengajuan {$plan['name']} berhasil dikirim. Menunggu verifikasi super admin.");
     }
 
+    private function submitMembershipViaXendit(Request $request)
+    {
+        $availablePlanCodes = array_keys(config('premium.membership_plans', []));
+        if (empty($availablePlanCodes)) {
+            $availablePlanCodes = ['monthly', 'yearly'];
+        }
+
+        $validated = $request->validate([
+            'plan_code' => 'required|string|in:' . implode(',', $availablePlanCodes),
+            'channel_code' => 'required|string|max:120',
+            'user_note' => 'nullable|string|max:1000',
+        ], [
+            'channel_code.required' => 'Pilih metode pembayaran terlebih dahulu.',
+        ]);
+
+        $plan = $this->getMembershipPlan($validated['plan_code']);
+        $user = $request->user();
+        $hasPending = $user->subscriptions()->where('status', 'pending')->exists();
+        if ($hasPending) {
+            return back()->with('error', 'Anda masih punya pengajuan premium yang menunggu verifikasi admin.');
+        }
+
+        $channelCode = $this->resolveXenditChannelCode((string) $validated['channel_code']);
+        $referenceId = 'membership_' . (string) Str::uuid();
+
+        $subscription = $user->subscriptions()->create([
+            'status' => 'pending',
+            'plan_code' => $validated['plan_code'],
+            'plan_name' => $plan['name'],
+            'duration_days' => $plan['duration_days'],
+            'amount' => $plan['amount'],
+            'payment_method' => $channelCode,
+            'user_note' => $validated['user_note'] ?? null,
+            'xendit_reference_id' => $referenceId,
+            'xendit_channel_code' => $channelCode,
+            'xendit_status' => 'PENDING',
+        ]);
+
+        try {
+            $response = $this->xenditService()->createPaymentRequest([
+                'reference_id' => $referenceId,
+                'type' => 'PAY',
+                'country' => 'ID',
+                'currency' => 'IDR',
+                'request_amount' => (float) $plan['amount'],
+                'capture_method' => 'AUTOMATIC',
+                'channel_code' => $channelCode,
+                'channel_properties' => $this->buildXenditChannelProperties(
+                    route('premium.purchase', ['payment' => 'success']),
+                    route('premium.purchase', ['payment' => 'failed']),
+                    route('premium.purchase', ['payment' => 'cancel']),
+                ),
+                'description' => "Membership {$plan['name']} - {$user->email}",
+                'metadata' => [
+                    'context' => 'membership',
+                    'subscription_id' => $subscription->id,
+                    'user_id' => $user->id,
+                    'plan_code' => $validated['plan_code'],
+                ],
+            ]);
+
+            $checkoutUrl = $this->extractXenditCheckoutUrl($response);
+            $subscription->update([
+                'xendit_payment_request_id' => (string) ($response['id'] ?? $response['payment_request_id'] ?? ''),
+                'xendit_latest_payment_id' => (string) ($response['latest_payment_id'] ?? ''),
+                'xendit_status' => strtoupper((string) ($response['status'] ?? 'PENDING')),
+                'xendit_checkout_url' => $checkoutUrl,
+            ]);
+
+            if ($checkoutUrl) {
+                return redirect()->away($checkoutUrl);
+            }
+
+            return redirect()
+                ->route('premium.purchase')
+                ->with('success', 'Permintaan pembayaran berhasil dibuat. Silakan selesaikan pembayaran dari channel yang dipilih.');
+        } catch (\Throwable $e) {
+            report($e);
+            $subscription->delete();
+
+            $message = $e instanceof RuntimeException
+                ? $e->getMessage()
+                : 'Gagal membuat permintaan pembayaran ke Xendit.';
+
+            return back()->with('error', $message);
+        }
+    }
+
     public function submitArticle(Request $request, Survey $survey)
     {
+        if ($this->isXenditEnabled()) {
+            return $this->submitArticleViaXendit($request, $survey);
+        }
+
         $premiumTier = $survey->resolvedPremiumTier();
         if ($premiumTier === Survey::PREMIUM_TIER_FREE) {
             return back()->with('error', 'Artikel ini bukan konten premium.');
@@ -293,6 +405,105 @@ class PremiumController extends Controller
         ]);
 
         return back()->with('success', 'Pengajuan pembelian artikel berhasil dikirim. Menunggu verifikasi super admin.');
+    }
+
+    private function submitArticleViaXendit(Request $request, Survey $survey)
+    {
+        $premiumTier = $survey->resolvedPremiumTier();
+        if ($premiumTier === Survey::PREMIUM_TIER_FREE) {
+            return back()->with('error', 'Artikel ini bukan konten premium.');
+        }
+        if ($premiumTier === Survey::PREMIUM_TIER_SPECIAL) {
+            return back()->with('error', 'Artikel kategori spesial hanya dapat diakses melalui WhatsApp.');
+        }
+
+        $user = $request->user();
+        if ($user->hasActiveSubscription()) {
+            return back()->with('error', 'Akun Anda sudah memiliki membership aktif, tidak perlu beli artikel satuan.');
+        }
+
+        if ($user->hasArticleEntitlement((int) $survey->id)) {
+            return back()->with('error', 'Artikel ini sudah Anda miliki secara permanen.');
+        }
+
+        $hasPendingRequest = $user->articlePurchaseRequests()
+            ->where('survey_id', $survey->id)
+            ->where('status', 'pending')
+            ->exists();
+        if ($hasPendingRequest) {
+            return back()->with('error', 'Anda sudah mengirim permintaan pembelian artikel ini dan masih menunggu verifikasi.');
+        }
+
+        $validated = $request->validate([
+            'channel_code' => 'required|string|max:120',
+            'user_note' => 'nullable|string|max:1000',
+        ], [
+            'channel_code.required' => 'Pilih metode pembayaran terlebih dahulu.',
+        ]);
+
+        $channelCode = $this->resolveXenditChannelCode((string) $validated['channel_code']);
+        $amount = (int) config('premium.single_article_price', 10000);
+        $referenceId = 'article_' . (string) Str::uuid();
+
+        $purchaseRequest = $user->articlePurchaseRequests()->create([
+            'survey_id' => $survey->id,
+            'status' => 'pending',
+            'amount' => $amount,
+            'payment_method' => $channelCode,
+            'user_note' => $validated['user_note'] ?? null,
+            'xendit_reference_id' => $referenceId,
+            'xendit_channel_code' => $channelCode,
+            'xendit_status' => 'PENDING',
+        ]);
+
+        try {
+            $response = $this->xenditService()->createPaymentRequest([
+                'reference_id' => $referenceId,
+                'type' => 'PAY',
+                'country' => 'ID',
+                'currency' => 'IDR',
+                'request_amount' => (float) $amount,
+                'capture_method' => 'AUTOMATIC',
+                'channel_code' => $channelCode,
+                'channel_properties' => $this->buildXenditChannelProperties(
+                    route('surveys.show', ['survey' => $survey->slug, 'payment' => 'success']),
+                    route('surveys.show', ['survey' => $survey->slug, 'payment' => 'failed']),
+                    route('surveys.show', ['survey' => $survey->slug, 'payment' => 'cancel']),
+                ),
+                'description' => "Akses artikel premium {$survey->title} - {$user->email}",
+                'metadata' => [
+                    'context' => 'article',
+                    'purchase_request_id' => $purchaseRequest->id,
+                    'survey_id' => $survey->id,
+                    'user_id' => $user->id,
+                ],
+            ]);
+
+            $checkoutUrl = $this->extractXenditCheckoutUrl($response);
+            $purchaseRequest->update([
+                'xendit_payment_request_id' => (string) ($response['id'] ?? $response['payment_request_id'] ?? ''),
+                'xendit_latest_payment_id' => (string) ($response['latest_payment_id'] ?? ''),
+                'xendit_status' => strtoupper((string) ($response['status'] ?? 'PENDING')),
+                'xendit_checkout_url' => $checkoutUrl,
+            ]);
+
+            if ($checkoutUrl) {
+                return redirect()->away($checkoutUrl);
+            }
+
+            return redirect()
+                ->route('premium.purchase', ['survey' => $survey->slug, 'mode' => 'article'])
+                ->with('success', 'Permintaan pembayaran artikel berhasil dibuat. Silakan selesaikan pembayaran dari channel yang dipilih.');
+        } catch (\Throwable $e) {
+            report($e);
+            $purchaseRequest->delete();
+
+            $message = $e instanceof RuntimeException
+                ? $e->getMessage()
+                : 'Gagal membuat permintaan pembayaran artikel ke Xendit.';
+
+            return back()->with('error', $message);
+        }
     }
 
     public function adminIndex(Request $request)
@@ -613,6 +824,106 @@ class PremiumController extends Controller
             ->take(80)
             ->get()
             ->values();
+    }
+
+    private function isXenditEnabled(): bool
+    {
+        return trim((string) config('services.xendit.secret_key', '')) !== '';
+    }
+
+    private function xenditChannelsPayload(): array
+    {
+        $channels = config('premium.xendit.channels', []);
+        if (!is_array($channels)) {
+            return [];
+        }
+
+        return collect($channels)
+            ->filter(fn ($item) => is_array($item) && !empty($item['code']))
+            ->map(function (array $item) {
+                return [
+                    'code' => strtoupper((string) $item['code']),
+                    'label' => (string) ($item['label'] ?? $item['code']),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function resolveXenditChannelCode(string $channelCode): string
+    {
+        $normalized = strtoupper(trim($channelCode));
+        if ($normalized === '') {
+            $normalized = strtoupper((string) config('premium.xendit.default_channel_code', 'ID_DANA'));
+        }
+
+        $allowed = collect($this->xenditChannelsPayload())
+            ->pluck('code')
+            ->all();
+
+        if (!in_array($normalized, $allowed, true)) {
+            throw ValidationException::withMessages([
+                'channel_code' => 'Metode pembayaran yang dipilih tidak valid.',
+            ]);
+        }
+
+        return $normalized;
+    }
+
+    private function xenditService(): XenditPaymentRequestService
+    {
+        return app(XenditPaymentRequestService::class);
+    }
+
+    private function extractXenditCheckoutUrl(array $response): ?string
+    {
+        $directUrlCandidates = [
+            (string) ($response['checkout_url'] ?? ''),
+            (string) ($response['payment_link_url'] ?? ''),
+            (string) ($response['invoice_url'] ?? ''),
+        ];
+
+        foreach ($directUrlCandidates as $candidate) {
+            if ($candidate !== '' && filter_var($candidate, FILTER_VALIDATE_URL)) {
+                return $candidate;
+            }
+        }
+
+        $actions = $response['actions'] ?? [];
+        if (!is_array($actions)) {
+            return null;
+        }
+
+        foreach ($actions as $action) {
+            if (!is_array($action)) {
+                continue;
+            }
+
+            $value = (string) ($action['value'] ?? '');
+            if ($value !== '' && filter_var($value, FILTER_VALIDATE_URL)) {
+                return $value;
+            }
+        }
+
+        return null;
+    }
+
+    private function buildXenditChannelProperties(
+        string $successUrl,
+        string $failureUrl,
+        string $cancelUrl,
+    ): array {
+        $displayName = trim((string) config('app.name', 'Brightnest'));
+        if ($displayName === '') {
+            $displayName = 'Brightnest';
+        }
+
+        return [
+            'success_return_url' => $successUrl,
+            'failure_return_url' => $failureUrl,
+            'cancel_return_url' => $cancelUrl,
+            'display_name' => Str::limit($displayName, 30, ''),
+        ];
     }
 
     private function downloadProofFile(string $storedPath, string $namePrefix)

@@ -21,15 +21,25 @@ class ArticlePurchaseRequest extends Model
         'reference_no',
         'transfer_date',
         'proof_path',
+        'xendit_reference_id',
+        'xendit_payment_request_id',
+        'xendit_latest_payment_id',
+        'xendit_channel_code',
+        'xendit_status',
+        'xendit_checkout_url',
+        'xendit_webhook_payload',
         'user_note',
         'admin_note',
         'reviewed_at',
+        'paid_at',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
         'transfer_date' => 'date',
         'reviewed_at' => 'datetime',
+        'paid_at' => 'datetime',
+        'xendit_webhook_payload' => 'array',
     ];
 
     public function user(): BelongsTo
@@ -52,4 +62,3 @@ class ArticlePurchaseRequest extends Model
         return $this->hasOne(ArticleEntitlement::class, 'purchase_request_id');
     }
 }
-

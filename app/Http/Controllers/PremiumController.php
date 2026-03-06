@@ -329,6 +329,10 @@ class PremiumController extends Controller
             ]);
 
             if ($checkoutUrl) {
+                if ($request->header('X-Inertia')) {
+                    return Inertia::location($checkoutUrl);
+                }
+
                 return redirect()->away($checkoutUrl);
             }
 
@@ -488,6 +492,10 @@ class PremiumController extends Controller
             ]);
 
             if ($checkoutUrl) {
+                if ($request->header('X-Inertia')) {
+                    return Inertia::location($checkoutUrl);
+                }
+
                 return redirect()->away($checkoutUrl);
             }
 
@@ -901,6 +909,9 @@ class PremiumController extends Controller
             (string) ($response['checkout_url'] ?? ''),
             (string) ($response['payment_link_url'] ?? ''),
             (string) ($response['invoice_url'] ?? ''),
+            (string) ($response['payment_url'] ?? ''),
+            (string) ($response['web_url'] ?? ''),
+            (string) ($response['redirect_url'] ?? ''),
         ];
 
         foreach ($directUrlCandidates as $candidate) {
@@ -919,9 +930,19 @@ class PremiumController extends Controller
                 continue;
             }
 
-            $value = (string) ($action['value'] ?? '');
-            if ($value !== '' && filter_var($value, FILTER_VALIDATE_URL)) {
-                return $value;
+            $actionUrlCandidates = [
+                (string) ($action['value'] ?? ''),
+                (string) ($action['url'] ?? ''),
+                (string) ($action['href'] ?? ''),
+                (string) ($action['desktop_web_checkout_url'] ?? ''),
+                (string) ($action['mobile_web_checkout_url'] ?? ''),
+                (string) ($action['mobile_deeplink_checkout_url'] ?? ''),
+            ];
+
+            foreach ($actionUrlCandidates as $candidate) {
+                if ($candidate !== '' && filter_var($candidate, FILTER_VALIDATE_URL)) {
+                    return $candidate;
+                }
             }
         }
 

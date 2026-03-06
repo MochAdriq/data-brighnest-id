@@ -41,4 +41,10 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    'xendit' => [
+        'base_url' => env('XENDIT_API_BASE_URL', 'https://api.xendit.co'),
+        'secret_key' => env('XENDIT_SECRET_KEY'),
+        'webhook_verification_token' => env('XENDIT_WEBHOOK_VERIFICATION_TOKEN'),
+    ],
+
 ];

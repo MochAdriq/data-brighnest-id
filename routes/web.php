@@ -6,11 +6,13 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PremiumController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SurveyController; 
+use App\Http\Controllers\XenditWebhookController;
 use App\Http\Controllers\UserRoleController;
 use App\Models\Survey; 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\MediaController;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 
 Route::get('/', function () {
     $featured = null;
@@ -121,5 +123,9 @@ Route::get('/category/{slug}', function ($slug, Request $request) {
 Route::get('/kilas-data', [SurveyController::class, 'kilasData'])->name('kilas-data');
 Route::get('/fokus-utama', function(Request $request) { return app(SurveyController::class)->produk('story', $request); })->name('fokus-utama');
 Route::get('/kabar-tepi', function(Request $request) { return app(SurveyController::class)->produk('news', $request); })->name('kabar-tepi');
+
+Route::post('/webhooks/xendit/payment-request', [XenditWebhookController::class, 'paymentRequestStatus'])
+    ->name('webhooks.xendit.payment-request')
+    ->withoutMiddleware([VerifyCsrfToken::class]);
 
 require __DIR__.'/auth.php';

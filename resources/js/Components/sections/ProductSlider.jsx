@@ -11,6 +11,7 @@ export default function ProductSlider({
     linkText = "Lihat Semua",
     bgColor = "bg-white",
     icon,
+    keepPublicationPremiumImageVisible = false,
 }) {
     const scrollRef = useRef(null);
 
@@ -116,7 +117,12 @@ export default function ProductSlider({
                             >
                                 {/* Bungkus Card biar ada efek hover naik */}
                                 <div className="h-full transform transition-transform duration-300 hover:-translate-y-2">
-                                    <DataCard item={formatItem(item)} />
+                                    <DataCard
+                                        item={formatItem(item)}
+                                        keepImageVisibleOnPremium={
+                                            keepPublicationPremiumImageVisible
+                                        }
+                                    />
                                 </div>
                             </div>
                         ))}

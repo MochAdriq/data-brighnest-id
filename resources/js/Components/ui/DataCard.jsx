@@ -10,7 +10,7 @@ import {
 } from "lucide-react"; // Tambah icon Layers
 import { Link } from "@inertiajs/react";
 
-const DataCard = ({ item }) => {
+const DataCard = ({ item, keepImageVisibleOnPremium = false }) => {
     // 1. Helper Warna Kategori
     const getCategoryColor = (cat) => {
         const category = cat?.toLowerCase() || "";
@@ -69,6 +69,9 @@ const DataCard = ({ item }) => {
     const productInfo = getProductLabel(item.type);
     const premiumTier = item.premiumTier || (item.isPremium ? "premium" : "free");
     const premiumLabel = premiumTier === "special" ? "Spesial" : "Premium Data";
+    const isPublicationPremium = item.type === "publikasi_riset" && item.isPremium;
+    const shouldShowPremiumOverlay =
+        item.isPremium && !(keepImageVisibleOnPremium && isPublicationPremium);
 
     return (
         // GANTI BAGIAN INI:
@@ -109,7 +112,7 @@ const DataCard = ({ item }) => {
                 </span>
 
                 {/* Badge Premium */}
-                {item.isPremium && (
+                {shouldShowPremiumOverlay && (
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] flex flex-col items-center justify-center text-white z-20">
                         <div className="bg-white/20 p-3 rounded-full mb-2 backdrop-blur-md">
                             <Lock className="w-6 h-6 text-white" />
@@ -117,6 +120,13 @@ const DataCard = ({ item }) => {
                         <span className="text-sm font-bold tracking-wide">
                             {premiumLabel}
                         </span>
+                    </div>
+                )}
+
+                {isPublicationPremium && keepImageVisibleOnPremium && (
+                    <div className="absolute top-3 left-3 z-20 inline-flex items-center gap-1 rounded-full bg-slate-900/75 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+                        <Lock className="h-3.5 w-3.5" />
+                        <span>{premiumLabel}</span>
                     </div>
                 )}
             </div>

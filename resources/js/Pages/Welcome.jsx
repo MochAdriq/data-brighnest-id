@@ -84,6 +84,7 @@ export default function Welcome({
                     linkText="Lihat Semua Publikasi"
                     bgColor="bg-white"
                     icon={<BadgeCheck className="w-6 h-6" />}
+                    keepPublicationPremiumImageVisible
                 />
 
                 {/* 5. CTA: PENUTUP */}

@@ -146,7 +146,7 @@ export default function UserRoles({ auth, users, filters, availableRoles }) {
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                     >
                         <ShieldCheck className="w-4 h-4" />
-                        Verifikasi Premium
+                        Monitoring Premium
                     </Link>
                 </div>
             }

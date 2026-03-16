@@ -3,8 +3,6 @@ import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, useForm } from "@inertiajs/react";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 
-const todayIso = new Date().toISOString().slice(0, 10);
-
 const formatRupiah = (value) =>
     new Intl.NumberFormat("id-ID", {
         style: "currency",
@@ -33,12 +31,8 @@ export default function PurchaseArticle({
     const xenditChannels = Array.isArray(xendit?.channels) ? xendit.channels : [];
 
     const form = useForm({
-        payment_method: "Transfer Bank",
         channel_code: xenditChannels?.[0]?.code || "",
-        transfer_date: todayIso,
-        reference_no: "",
         user_note: "",
-        proof_file: null,
     });
 
     const blocked =
@@ -76,7 +70,7 @@ export default function PurchaseArticle({
 
     const submit = (e) => {
         e.preventDefault();
-        if (blocked) {
+        if (blocked || !xenditEnabled) {
             return;
         }
 
@@ -217,7 +211,11 @@ export default function PurchaseArticle({
                         </div>
 
                         <form onSubmit={submit} className="mt-5 space-y-4 border-t border-slate-700 pt-5">
-                            {xenditEnabled ? (
+                            {!xenditEnabled ? (
+                                <div className="rounded-xl border border-rose-400/40 bg-rose-500/10 p-3 text-xs text-rose-200">
+                                    Pembayaran online sedang tidak tersedia. Coba lagi nanti atau hubungi admin.
+                                </div>
+                            ) : (
                                 <div>
                                     <label className="text-sm font-medium text-slate-200">Metode Pembayaran (Xendit)</label>
                                     <select
@@ -238,59 +236,6 @@ export default function PurchaseArticle({
                                         Setelah submit, Anda akan diarahkan ke halaman pembayaran Xendit.
                                     </p>
                                 </div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-sm font-medium text-slate-200">Metode Pembayaran</label>
-                                        <input
-                                            type="text"
-                                            value={form.data.payment_method}
-                                            onChange={(e) => form.setData("payment_method", e.target.value)}
-                                            className="mt-1 w-full rounded-lg border-slate-700 bg-slate-950 text-white"
-                                        />
-                                        {form.errors.payment_method && (
-                                            <p className="text-xs text-red-400 mt-1">{form.errors.payment_method}</p>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-slate-200">Tanggal Transfer</label>
-                                        <input
-                                            type="date"
-                                            value={form.data.transfer_date}
-                                            onChange={(e) => form.setData("transfer_date", e.target.value)}
-                                            className="mt-1 w-full rounded-lg border-slate-700 bg-slate-950 text-white"
-                                        />
-                                        {form.errors.transfer_date && (
-                                            <p className="text-xs text-red-400 mt-1">{form.errors.transfer_date}</p>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            {!xenditEnabled && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-sm font-medium text-slate-200">No. Referensi (opsional)</label>
-                                        <input
-                                            type="text"
-                                            value={form.data.reference_no}
-                                            onChange={(e) => form.setData("reference_no", e.target.value)}
-                                            className="mt-1 w-full rounded-lg border-slate-700 bg-slate-950 text-white"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-slate-200">Bukti Pembayaran (jpg/png/pdf)</label>
-                                        <input
-                                            type="file"
-                                            accept=".jpg,.jpeg,.png,.pdf"
-                                            onChange={(e) => form.setData("proof_file", e.target.files[0])}
-                                            className="mt-1 block w-full text-sm text-slate-200"
-                                        />
-                                        {form.errors.proof_file && (
-                                            <p className="text-xs text-red-400 mt-1">{form.errors.proof_file}</p>
-                                        )}
-                                    </div>
-                                </div>
                             )}
 
                             <div>
@@ -310,14 +255,10 @@ export default function PurchaseArticle({
                                 </p>
                                 <button
                                     type="submit"
-                                    disabled={form.processing || blocked}
+                                    disabled={form.processing || blocked || !xenditEnabled}
                                     className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
                                 >
-                                    {form.processing
-                                        ? "Memproses..."
-                                        : xenditEnabled
-                                          ? "Lanjut ke Xendit"
-                                          : "Lanjut Pembayaran"}
+                                    {form.processing ? "Memproses..." : "Lanjut ke Xendit"}
                                 </button>
                             </div>
                         </form>
@@ -325,7 +266,7 @@ export default function PurchaseArticle({
 
                     <section className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-xl">
                         <h3 className="text-lg font-bold text-white">Pending Artikel Satuan</h3>
-                        <p className="text-sm text-slate-300 mt-1 mb-4">Daftar pengajuan artikel yang masih menunggu verifikasi.</p>
+                        <p className="text-sm text-slate-300 mt-1 mb-4">Daftar transaksi artikel yang masih pending di Xendit.</p>
                         {pendingArticleRequests.length === 0 ? (
                             <div className="rounded-xl border border-dashed border-slate-600 bg-slate-800/60 p-5 text-sm text-slate-300">
                                 Belum ada pengajuan artikel satuan yang pending.
@@ -338,14 +279,20 @@ export default function PurchaseArticle({
                                         <p className="text-xs text-slate-300 mt-1">
                                             Diajukan: {item.created_at ? new Date(item.created_at).toLocaleDateString("id-ID") : "-"}
                                         </p>
-                                        {item.proof_path ? (
+                                        <p className="text-xs text-slate-300 mt-1">
+                                            Status: <span className="font-semibold uppercase">{item.status || "-"}</span>
+                                        </p>
+                                        <p className="text-xs text-slate-400 mt-1 font-mono">
+                                            Ref: {item.xendit_reference_id || "-"}
+                                        </p>
+                                        {item.xendit_checkout_url ? (
                                             <a
-                                                href={route("premium.proofs.article", item.id)}
+                                                href={item.xendit_checkout_url}
                                                 className="mt-2 inline-block text-sm text-blue-300 hover:underline"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                             >
-                                                Lihat Bukti Pembayaran
+                                                Lanjutkan Pembayaran
                                             </a>
                                         ) : null}
                                     </div>

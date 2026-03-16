@@ -14,7 +14,6 @@ class ArticleEntitlement extends Model
         'user_id',
         'survey_id',
         'purchase_request_id',
-        'granted_by',
         'granted_at',
     ];
 
@@ -37,9 +36,4 @@ class ArticleEntitlement extends Model
         return $this->belongsTo(ArticlePurchaseRequest::class, 'purchase_request_id');
     }
 
-    public function grantedBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'granted_by');
-    }
 }
-

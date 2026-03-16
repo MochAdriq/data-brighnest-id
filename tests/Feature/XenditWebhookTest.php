@@ -84,7 +84,7 @@ class XenditWebhookTest extends TestCase
         $this->assertNotNull($subscription->paid_at);
     }
 
-    public function test_xendit_webhook_auto_approves_pending_article_request_when_succeeded(): void
+    public function test_xendit_webhook_auto_marks_pending_article_request_succeeded_when_payment_succeeds(): void
     {
         $user = User::factory()->create();
         $survey = Survey::factory()->create([
@@ -118,12 +118,45 @@ class XenditWebhookTest extends TestCase
         ])->assertOk();
 
         $purchaseRequest->refresh();
-        $this->assertSame('approved', $purchaseRequest->status);
+        $this->assertSame('succeeded', $purchaseRequest->status);
         $this->assertNotNull($purchaseRequest->paid_at);
         $this->assertDatabaseHas('article_entitlements', [
             'user_id' => $user->id,
             'survey_id' => $survey->id,
             'purchase_request_id' => $purchaseRequest->id,
         ]);
+    }
+
+    public function test_xendit_webhook_marks_pending_membership_as_failed_when_payment_fails(): void
+    {
+        $user = User::factory()->create();
+        $subscription = Subscription::create([
+            'user_id' => $user->id,
+            'status' => 'pending',
+            'plan_code' => 'monthly',
+            'plan_name' => 'Premium Bulanan',
+            'duration_days' => 30,
+            'amount' => 100000,
+            'xendit_reference_id' => 'membership_ref_failed_001',
+            'xendit_payment_request_id' => 'pr_failed_001',
+        ]);
+
+        config([
+            'services.xendit.webhook_verification_token' => 'valid-token',
+        ]);
+
+        $this->withHeaders([
+            'X-CALLBACK-TOKEN' => 'valid-token',
+        ])->postJson(route('webhooks.xendit.payment-request'), [
+            'event' => 'payment_request.failed',
+            'data' => [
+                'payment_request_id' => 'pr_failed_001',
+                'reference_id' => 'membership_ref_failed_001',
+                'status' => 'FAILED',
+            ],
+        ])->assertOk();
+
+        $subscription->refresh();
+        $this->assertSame('failed', $subscription->status);
     }
 }

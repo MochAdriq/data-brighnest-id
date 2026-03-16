@@ -54,7 +54,7 @@ export default function AuthenticatedLayout({ header, children }) {
                                         'premium.admin.subscriptions',
                                     )}
                                 >
-                                    Verifikasi Premium
+                                    Monitoring Premium
                                 </NavLink>
                             )}
                             {isSuperAdmin && (
@@ -186,7 +186,7 @@ export default function AuthenticatedLayout({ header, children }) {
                                         'premium.admin.subscriptions',
                                     )}
                                 >
-                                    Verifikasi Premium
+                                    Monitoring Premium
                                 </ResponsiveNavLink>
                             )}
                             {isSuperAdmin && (

@@ -14,13 +14,8 @@ class ArticlePurchaseRequest extends Model
     protected $fillable = [
         'user_id',
         'survey_id',
-        'verified_by',
         'status',
         'amount',
-        'payment_method',
-        'reference_no',
-        'transfer_date',
-        'proof_path',
         'xendit_reference_id',
         'xendit_payment_request_id',
         'xendit_latest_payment_id',
@@ -29,15 +24,11 @@ class ArticlePurchaseRequest extends Model
         'xendit_checkout_url',
         'xendit_webhook_payload',
         'user_note',
-        'admin_note',
-        'reviewed_at',
         'paid_at',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
-        'transfer_date' => 'date',
-        'reviewed_at' => 'datetime',
         'paid_at' => 'datetime',
         'xendit_webhook_payload' => 'array',
     ];
@@ -50,11 +41,6 @@ class ArticlePurchaseRequest extends Model
     public function survey(): BelongsTo
     {
         return $this->belongsTo(Survey::class);
-    }
-
-    public function verifier(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'verified_by');
     }
 
     public function entitlement(): HasOne

@@ -231,7 +231,7 @@ export default function UpdateProfileInformation({
                                 setData('notify_premium_status', e.target.checked)
                             }
                         />
-                        Update status premium (approve/reject/expired)
+                        Update status premium (pending/succeeded/failed/expired/cancelled)
                     </label>
                 </div>
 

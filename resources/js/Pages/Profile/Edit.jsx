@@ -152,12 +152,12 @@ export default function Edit({
                                 <div className={STAT_CARD}>
                                     <p className="text-xs uppercase tracking-wider text-slate-400">Pending Membership</p>
                                     <p className="mt-2 text-2xl font-bold text-white">{profileStats?.pending_subscriptions || 0}</p>
-                                    <p className="mt-1 text-xs text-slate-300">Menunggu verifikasi admin.</p>
+                                    <p className="mt-1 text-xs text-slate-300">Menunggu status final dari Xendit.</p>
                                 </div>
                                 <div className={STAT_CARD}>
                                     <p className="text-xs uppercase tracking-wider text-slate-400">Pending Artikel</p>
                                     <p className="mt-2 text-2xl font-bold text-white">{profileStats?.pending_article_purchases || 0}</p>
-                                    <p className="mt-1 text-xs text-slate-300">Pengajuan pembelian satuan.</p>
+                                    <p className="mt-1 text-xs text-slate-300">Transaksi artikel yang belum selesai.</p>
                                 </div>
                             </div>
                         </div>
@@ -167,7 +167,7 @@ export default function Edit({
                         <div className="space-y-6">
                             <div className={`${LIGHT_CARD} p-4 sm:p-6`}>
                                 <h3 className="mb-2 text-lg font-bold text-white">Riwayat Membership</h3>
-                                <p className="mb-4 text-sm text-slate-300">Riwayat pengajuan dan verifikasi membership Anda.</p>
+                                <p className="mb-4 text-sm text-slate-300">Riwayat transaksi membership Anda melalui Xendit.</p>
 
                                 {subscriptionHistory.length === 0 ? (
                                     <HistoryEmpty
@@ -183,8 +183,8 @@ export default function Edit({
                                                     <th className="px-4 py-3">Paket</th>
                                                     <th className="px-4 py-3">Status</th>
                                                     <th className="px-4 py-3">Nominal</th>
-                                                    <th className="px-4 py-3">Verifikator</th>
-                                                    <th className="px-4 py-3">Bukti</th>
+                                                    <th className="px-4 py-3">Channel</th>
+                                                    <th className="px-4 py-3">Xendit Ref</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -194,21 +194,8 @@ export default function Edit({
                                                         <td className="px-4 py-3">{item.plan_name || '-'}</td>
                                                         <td className="px-4 py-3 uppercase font-semibold">{item.status || '-'}</td>
                                                         <td className="px-4 py-3">{formatCurrency(item.amount)}</td>
-                                                        <td className="px-4 py-3">{item.verifier?.name || '-'}</td>
-                                                        <td className="px-4 py-3">
-                                                            {item.proof_path ? (
-                                                                <a
-                                                                    href={route('premium.proofs.subscription', item.id)}
-                                                                    className="text-blue-300 hover:text-blue-200 hover:underline"
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                >
-                                                                    Lihat Bukti
-                                                                </a>
-                                                            ) : (
-                                                                '-'
-                                                            )}
-                                                        </td>
+                                                        <td className="px-4 py-3">{item.xendit_channel_code || '-'}</td>
+                                                        <td className="px-4 py-3 font-mono text-xs">{item.xendit_reference_id || '-'}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -219,7 +206,7 @@ export default function Edit({
 
                             <div className={`${LIGHT_CARD} p-4 sm:p-6`}>
                                 <h3 className="mb-2 text-lg font-bold text-white">Riwayat Pembelian Artikel</h3>
-                                <p className="mb-4 text-sm text-slate-300">Riwayat pembelian artikel satuan dan hasil verifikasinya.</p>
+                                <p className="mb-4 text-sm text-slate-300">Riwayat pembelian artikel satuan melalui Xendit.</p>
 
                                 {articlePurchaseHistory.length === 0 ? (
                                     <HistoryEmpty
@@ -235,8 +222,8 @@ export default function Edit({
                                                     <th className="px-4 py-3">Artikel</th>
                                                     <th className="px-4 py-3">Status</th>
                                                     <th className="px-4 py-3">Nominal</th>
-                                                    <th className="px-4 py-3">Verifikator</th>
-                                                    <th className="px-4 py-3">Bukti</th>
+                                                    <th className="px-4 py-3">Channel</th>
+                                                    <th className="px-4 py-3">Xendit Ref</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -257,21 +244,8 @@ export default function Edit({
                                                         </td>
                                                         <td className="px-4 py-3 uppercase font-semibold">{item.status || '-'}</td>
                                                         <td className="px-4 py-3">{formatCurrency(item.amount)}</td>
-                                                        <td className="px-4 py-3">{item.verifier?.name || '-'}</td>
-                                                        <td className="px-4 py-3">
-                                                            {item.proof_path ? (
-                                                                <a
-                                                                    href={route('premium.proofs.article', item.id)}
-                                                                    className="text-blue-300 hover:text-blue-200 hover:underline"
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                >
-                                                                    Lihat Bukti
-                                                                </a>
-                                                            ) : (
-                                                                '-'
-                                                            )}
-                                                        </td>
+                                                        <td className="px-4 py-3">{item.xendit_channel_code || '-'}</td>
+                                                        <td className="px-4 py-3 font-mono text-xs">{item.xendit_reference_id || '-'}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>

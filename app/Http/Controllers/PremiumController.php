@@ -7,10 +7,9 @@ use App\Models\ArticlePurchaseRequest;
 use App\Models\Subscription;
 use App\Models\Survey;
 use App\Models\User;
+use App\Services\XenditHealthCheckService;
 use App\Services\XenditPaymentRequestService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -216,42 +215,11 @@ class PremiumController extends Controller
 
     public function submitMembership(Request $request)
     {
-        if ($this->isXenditEnabled()) {
-            return $this->submitMembershipViaXendit($request);
+        if (!$this->isXenditEnabled()) {
+            return back()->with('error', 'Pembayaran online belum tersedia. Silakan hubungi admin.');
         }
 
-        $validated = $request->validate([
-            'plan_code' => 'required|string|in:monthly,yearly',
-            'payment_method' => 'required|string|max:80',
-            'transfer_date' => 'required|date',
-            'reference_no' => 'nullable|string|max:100',
-            'user_note' => 'nullable|string|max:1000',
-            'proof_file' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
-        ], [
-            'proof_file.required' => 'Bukti pembayaran wajib diupload.',
-            'proof_file.mimes' => 'Bukti pembayaran harus jpg/png/pdf.',
-            'proof_file.max' => 'Ukuran bukti pembayaran maksimal 5MB.',
-        ]);
-
-        $plan = $this->getMembershipPlan($validated['plan_code']);
-        $user = $request->user();
-
-        $proofPath = $request->file('proof_file')->store('private/payments/memberships');
-
-        $user->subscriptions()->create([
-            'status' => 'pending',
-            'plan_code' => $validated['plan_code'],
-            'plan_name' => $plan['name'],
-            'duration_days' => $plan['duration_days'],
-            'amount' => $plan['amount'],
-            'payment_method' => trim($validated['payment_method']),
-            'reference_no' => $validated['reference_no'] ?? null,
-            'transfer_date' => $validated['transfer_date'],
-            'proof_path' => $proofPath,
-            'user_note' => $validated['user_note'] ?? null,
-        ]);
-
-        return back()->with('success', "Pengajuan {$plan['name']} berhasil dikirim. Menunggu verifikasi super admin.");
+        return $this->submitMembershipViaXendit($request);
     }
 
     private function submitMembershipViaXendit(Request $request)
@@ -281,7 +249,6 @@ class PremiumController extends Controller
             'plan_name' => $plan['name'],
             'duration_days' => $plan['duration_days'],
             'amount' => $plan['amount'],
-            'payment_method' => $channelCode,
             'user_note' => $validated['user_note'] ?? null,
             'xendit_reference_id' => $referenceId,
             'xendit_channel_code' => $channelCode,
@@ -344,54 +311,11 @@ class PremiumController extends Controller
 
     public function submitArticle(Request $request, Survey $survey)
     {
-        if ($this->isXenditEnabled()) {
-            return $this->submitArticleViaXendit($request, $survey);
+        if (!$this->isXenditEnabled()) {
+            return back()->with('error', 'Pembayaran online belum tersedia. Silakan hubungi admin.');
         }
 
-        $premiumTier = $survey->resolvedPremiumTier();
-        if ($premiumTier === Survey::PREMIUM_TIER_FREE) {
-            return back()->with('error', 'Artikel ini bukan konten premium.');
-        }
-        if ($premiumTier === Survey::PREMIUM_TIER_SPECIAL) {
-            return back()->with('error', 'Artikel kategori spesial hanya dapat diakses melalui WhatsApp.');
-        }
-
-        $user = $request->user();
-        if ($user->hasActiveSubscription()) {
-            return back()->with('error', 'Akun Anda sudah memiliki membership aktif, tidak perlu beli artikel satuan.');
-        }
-
-        if ($user->hasArticleEntitlement((int) $survey->id)) {
-            return back()->with('error', 'Artikel ini sudah Anda miliki secara permanen.');
-        }
-
-        $validated = $request->validate([
-            'payment_method' => 'required|string|max:80',
-            'transfer_date' => 'required|date',
-            'reference_no' => 'nullable|string|max:100',
-            'user_note' => 'nullable|string|max:1000',
-            'proof_file' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
-        ], [
-            'proof_file.required' => 'Bukti pembayaran wajib diupload.',
-            'proof_file.mimes' => 'Bukti pembayaran harus jpg/png/pdf.',
-            'proof_file.max' => 'Ukuran bukti pembayaran maksimal 5MB.',
-        ]);
-
-        $proofPath = $request->file('proof_file')->store('private/payments/articles');
-        $amount = (int) config('premium.single_article_price', 10000);
-
-        $user->articlePurchaseRequests()->create([
-            'survey_id' => $survey->id,
-            'status' => 'pending',
-            'amount' => $amount,
-            'payment_method' => trim($validated['payment_method']),
-            'reference_no' => $validated['reference_no'] ?? null,
-            'transfer_date' => $validated['transfer_date'],
-            'proof_path' => $proofPath,
-            'user_note' => $validated['user_note'] ?? null,
-        ]);
-
-        return back()->with('success', 'Pengajuan pembelian artikel berhasil dikirim. Menunggu verifikasi super admin.');
+        return $this->submitArticleViaXendit($request, $survey);
     }
 
     private function submitArticleViaXendit(Request $request, Survey $survey)
@@ -428,7 +352,6 @@ class PremiumController extends Controller
             'survey_id' => $survey->id,
             'status' => 'pending',
             'amount' => $amount,
-            'payment_method' => $channelCode,
             'user_note' => $validated['user_note'] ?? null,
             'xendit_reference_id' => $referenceId,
             'xendit_channel_code' => $channelCode,
@@ -493,16 +416,20 @@ class PremiumController extends Controller
     {
         $this->ensureAdmin($request);
         $filters = $this->resolveFilters($request);
+        $xenditHealth = app(XenditHealthCheckService::class)->run();
 
-        $subscriptions = Subscription::with(['user:id,name,email', 'verifier:id,name'])
+        $subscriptions = Subscription::with(['user:id,name,email'])
             ->when($filters['status'] !== '', function ($query) use ($filters) {
                 $query->where('status', $filters['status']);
             })
             ->when($filters['q'] !== '', function ($query) use ($filters) {
                 $keyword = $filters['q'];
                 $query->where(function ($sub) use ($keyword) {
-                    $sub->where('payment_method', 'like', "%{$keyword}%")
-                        ->orWhere('reference_no', 'like', "%{$keyword}%")
+                    $sub->where('plan_name', 'like', "%{$keyword}%")
+                        ->orWhere('xendit_reference_id', 'like', "%{$keyword}%")
+                        ->orWhere('xendit_payment_request_id', 'like', "%{$keyword}%")
+                        ->orWhere('xendit_channel_code', 'like', "%{$keyword}%")
+                        ->orWhere('xendit_status', 'like', "%{$keyword}%")
                         ->orWhereHas('user', function ($userQ) use ($keyword) {
                             $userQ->where('name', 'like', "%{$keyword}%")
                                 ->orWhere('email', 'like', "%{$keyword}%");
@@ -515,9 +442,8 @@ class PremiumController extends Controller
 
         $articleRequests = ArticlePurchaseRequest::with([
                 'user:id,name,email',
-                'verifier:id,name',
                 'survey:id,title,slug,type,is_premium,premium_tier',
-                'entitlement:id,purchase_request_id',
+                'entitlement:id,purchase_request_id,granted_at',
             ])
             ->when($filters['status'] !== '', function ($query) use ($filters) {
                 $query->where('status', $filters['status']);
@@ -525,8 +451,10 @@ class PremiumController extends Controller
             ->when($filters['q'] !== '', function ($query) use ($filters) {
                 $keyword = $filters['q'];
                 $query->where(function ($sub) use ($keyword) {
-                    $sub->where('payment_method', 'like', "%{$keyword}%")
-                        ->orWhere('reference_no', 'like', "%{$keyword}%")
+                    $sub->where('xendit_reference_id', 'like', "%{$keyword}%")
+                        ->orWhere('xendit_payment_request_id', 'like', "%{$keyword}%")
+                        ->orWhere('xendit_channel_code', 'like', "%{$keyword}%")
+                        ->orWhere('xendit_status', 'like', "%{$keyword}%")
                         ->orWhereHas('survey', function ($surveyQ) use ($keyword) {
                             $surveyQ->where('title', 'like', "%{$keyword}%");
                         })
@@ -540,167 +468,54 @@ class PremiumController extends Controller
             ->paginate(20, ['*'], 'article_page')
             ->withQueryString();
 
-        return Inertia::render('Premium/AdminSubscriptions', [
-            'subscriptions' => $subscriptions,
-            'articleRequests' => $articleRequests,
-            'filters' => $filters,
-            'filterOptions' => [
-                'statuses' => ['pending', 'active', 'approved', 'rejected'],
-                'plans' => array_keys(config('premium.membership_plans', [])),
-            ],
-        ]);
-    }
-
-    public function approve(Request $request, Subscription $subscription)
-    {
-        $this->ensureAdmin($request);
-
-        if ($subscription->status === 'active') {
-            return back()->with('success', 'Subscription sudah aktif.');
-        }
-        if ($subscription->status !== 'pending') {
-            return back()->with('error', 'Hanya subscription berstatus pending yang bisa di-approve.');
-        }
-
-        $startsAt = now();
-        $activeTail = Subscription::query()
-            ->where('user_id', $subscription->user_id)
+        $activeMemberships = Subscription::with(['user:id,name,email'])
             ->where('status', 'active')
-            ->where('id', '!=', $subscription->id)
             ->where(function ($q) {
                 $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
             })
-            ->latest('ends_at')
-            ->first();
-        if ($activeTail && $activeTail->ends_at && $activeTail->ends_at->gt($startsAt)) {
-            $startsAt = $activeTail->ends_at->copy();
-        }
+            ->orderBy('ends_at', 'asc')
+            ->take(12)
+            ->get()
+            ->values();
 
-        $durationDays = (int) ($subscription->duration_days ?: $this->resolvePlanDuration((string) $subscription->plan_code));
-        if ($durationDays <= 0) {
-            $durationDays = 30;
-        }
-        $endsAt = (clone $startsAt)->addDays($durationDays);
+        $recentEntitlements = ArticleEntitlement::with([
+                'user:id,name,email',
+                'survey:id,title,slug,type,is_premium,premium_tier',
+            ])
+            ->latest('granted_at')
+            ->take(12)
+            ->get()
+            ->values();
 
-        $subscription->update([
-            'status' => 'active',
-            'verified_by' => $request->user()->id,
-            'admin_note' => $request->input('admin_note'),
-            'starts_at' => $startsAt,
-            'ends_at' => $endsAt,
-            'reviewed_at' => now(),
+        $premiumSummary = [
+            'active_memberships' => Subscription::query()
+                ->where('status', 'active')
+                ->where(function ($q) {
+                    $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
+                })
+                ->count(),
+            'article_entitlements' => ArticleEntitlement::query()->count(),
+            'pending_membership_payments' => Subscription::query()
+                ->where('status', 'pending')
+                ->count(),
+            'pending_article_payments' => ArticlePurchaseRequest::query()
+                ->where('status', 'pending')
+                ->count(),
+        ];
+
+        return Inertia::render('Premium/AdminSubscriptions', [
+            'subscriptions' => $subscriptions,
+            'articleRequests' => $articleRequests,
+            'activeMemberships' => $activeMemberships,
+            'recentEntitlements' => $recentEntitlements,
+            'premiumSummary' => $premiumSummary,
+            'filters' => $filters,
+            'xenditHealth' => $xenditHealth,
+            'filterOptions' => [
+                'statuses' => $this->availablePremiumStatuses(),
+                'plans' => array_keys(config('premium.membership_plans', [])),
+            ],
         ]);
-
-        return back()->with('success', 'Subscription berhasil diaktifkan.');
-    }
-
-    public function reject(Request $request, Subscription $subscription)
-    {
-        $this->ensureAdmin($request);
-
-        if ($subscription->status === 'rejected') {
-            return back()->with('success', 'Subscription sudah berstatus ditolak.');
-        }
-        if ($subscription->status !== 'pending') {
-            return back()->with('error', 'Hanya subscription berstatus pending yang bisa ditolak.');
-        }
-
-        $subscription->update([
-            'status' => 'rejected',
-            'verified_by' => $request->user()->id,
-            'admin_note' => $request->input('admin_note'),
-            'reviewed_at' => now(),
-        ]);
-
-        return back()->with('success', 'Pengajuan subscription ditolak.');
-    }
-
-    public function approveArticle(Request $request, ArticlePurchaseRequest $articlePurchaseRequest)
-    {
-        $this->ensureAdmin($request);
-
-        if ($articlePurchaseRequest->status === 'approved') {
-            return back()->with('success', 'Permintaan pembelian artikel sudah disetujui.');
-        }
-        if ($articlePurchaseRequest->status !== 'pending') {
-            return back()->with('error', 'Hanya permintaan berstatus pending yang bisa di-approve.');
-        }
-
-        DB::transaction(function () use ($request, $articlePurchaseRequest) {
-            $articlePurchaseRequest->update([
-                'status' => 'approved',
-                'verified_by' => $request->user()->id,
-                'admin_note' => $request->input('admin_note'),
-                'reviewed_at' => now(),
-            ]);
-
-            ArticleEntitlement::firstOrCreate(
-                [
-                    'user_id' => $articlePurchaseRequest->user_id,
-                    'survey_id' => $articlePurchaseRequest->survey_id,
-                ],
-                [
-                    'purchase_request_id' => $articlePurchaseRequest->id,
-                    'granted_by' => $request->user()->id,
-                    'granted_at' => now(),
-                ]
-            );
-        });
-
-        return back()->with('success', 'Permintaan pembelian artikel disetujui dan akses permanen diberikan.');
-    }
-
-    public function rejectArticle(Request $request, ArticlePurchaseRequest $articlePurchaseRequest)
-    {
-        $this->ensureAdmin($request);
-
-        if ($articlePurchaseRequest->status === 'rejected') {
-            return back()->with('success', 'Permintaan pembelian artikel sudah ditolak.');
-        }
-        if ($articlePurchaseRequest->status !== 'pending') {
-            return back()->with('error', 'Hanya permintaan berstatus pending yang bisa ditolak.');
-        }
-
-        $articlePurchaseRequest->update([
-            'status' => 'rejected',
-            'verified_by' => $request->user()->id,
-            'admin_note' => $request->input('admin_note'),
-            'reviewed_at' => now(),
-        ]);
-
-        return back()->with('success', 'Permintaan pembelian artikel ditolak.');
-    }
-
-    public function downloadSubscriptionProof(Request $request, Subscription $subscription)
-    {
-        $user = $request->user();
-        $canAccess = $user
-            && ($user->hasRole('super_admin') || (int) $subscription->user_id === (int) $user->id);
-        if (!$canAccess) {
-            abort(403);
-        }
-
-        if (empty($subscription->proof_path)) {
-            abort(404);
-        }
-
-        return $this->downloadProofFile((string) $subscription->proof_path, "subscription-{$subscription->id}");
-    }
-
-    public function downloadArticleProof(Request $request, ArticlePurchaseRequest $articlePurchaseRequest)
-    {
-        $user = $request->user();
-        $canAccess = $user
-            && ($user->hasRole('super_admin') || (int) $articlePurchaseRequest->user_id === (int) $user->id);
-        if (!$canAccess) {
-            abort(403);
-        }
-
-        if (empty($articlePurchaseRequest->proof_path)) {
-            abort(404);
-        }
-
-        return $this->downloadProofFile((string) $articlePurchaseRequest->proof_path, "article-{$articlePurchaseRequest->id}");
     }
 
     private function ensureAdmin(Request $request)
@@ -715,11 +530,27 @@ class PremiumController extends Controller
         $sort = strtolower((string) $request->query('sort', 'desc'));
         $status = strtolower((string) $request->query('status', ''));
         $q = trim((string) $request->query('q', ''));
+        $availableStatuses = $this->availablePremiumStatuses();
 
         return [
             'q' => $q,
-            'status' => in_array($status, ['pending', 'active', 'approved', 'rejected'], true) ? $status : '',
+            'status' => in_array($status, $availableStatuses, true) ? $status : '',
             'sort' => in_array($sort, ['asc', 'desc'], true) ? $sort : 'desc',
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function availablePremiumStatuses(): array
+    {
+        return [
+            'pending',
+            'active',
+            'succeeded',
+            'failed',
+            'expired',
+            'cancelled',
         ];
     }
 
@@ -942,28 +773,4 @@ class PremiumController extends Controller
         ];
     }
 
-    private function downloadProofFile(string $storedPath, string $namePrefix)
-    {
-        $local = Storage::disk('local');
-        $public = Storage::disk('public');
-
-        if ($local->exists($storedPath)) {
-            $absolutePath = $local->path($storedPath);
-            $extension = pathinfo($storedPath, PATHINFO_EXTENSION);
-            $filename = $namePrefix . ($extension ? ".{$extension}" : '');
-
-            return response()->download($absolutePath, $filename);
-        }
-
-        // Backward compatibility untuk data lama yang tersimpan di disk public.
-        if ($public->exists($storedPath)) {
-            $absolutePath = $public->path($storedPath);
-            $extension = pathinfo($storedPath, PATHINFO_EXTENSION);
-            $filename = $namePrefix . ($extension ? ".{$extension}" : '');
-
-            return response()->download($absolutePath, $filename);
-        }
-
-        abort(404);
-    }
 }

@@ -2,14 +2,16 @@
 
 namespace Tests\Feature;
 
-use App\Models\Subscription;
 use App\Models\ArticleEntitlement;
 use App\Models\ArticlePurchaseRequest;
+use App\Models\Subscription;
+use App\Models\Survey;
 use App\Models\User;
+use App\Services\XenditPaymentRequestService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia;
+use Mockery\MockInterface;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -31,24 +33,320 @@ class PremiumSubscriptionTest extends TestCase
         $response->assertRedirect(route('login'));
     }
 
-    public function test_authenticated_user_can_submit_manual_subscription_request(): void
+    public function test_authenticated_user_cannot_submit_membership_when_xendit_not_configured(): void
     {
-        Storage::fake('public');
-        $user = User::factory()->create();
-
-        $response = $this->actingAs($user)->post(route('premium.submit'), [
-            'payment_method' => 'Transfer Bank',
-            'transfer_date' => now()->toDateString(),
-            'amount' => '150000',
-            'reference_no' => 'REF-12345',
-            'user_note' => 'Pembayaran bulan ini',
-            'proof_file' => UploadedFile::fake()->image('proof.jpg'),
+        config([
+            'services.xendit.secret_key' => '',
         ]);
 
-        $response->assertSessionHasNoErrors();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->from(route('premium.checkout', ['plan_code' => 'monthly']))
+            ->post(route('premium.membership.submit'), [
+                'plan_code' => 'monthly',
+                'channel_code' => 'DANA',
+                'user_note' => 'Coba submit',
+            ]);
+
+        $response->assertRedirect(route('premium.checkout', ['plan_code' => 'monthly']));
+        $response->assertSessionHas('error');
+        $this->assertDatabaseMissing('subscriptions', [
+            'user_id' => $user->id,
+        ]);
+    }
+
+    public function test_authenticated_user_can_submit_membership_via_xendit(): void
+    {
+        config([
+            'services.xendit.secret_key' => 'xnd_test_key_123456',
+            'services.xendit.base_url' => 'https://api.xendit.co',
+            'premium.xendit.default_channel_code' => 'DANA',
+            'premium.xendit.channels' => [
+                ['code' => 'DANA', 'label' => 'DANA'],
+            ],
+        ]);
+
+        $user = User::factory()->create();
+
+        $this->mock(XenditPaymentRequestService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('createPaymentRequest')
+                ->once()
+                ->andReturn([
+                    'id' => 'pr_membership_001',
+                    'latest_payment_id' => 'py_membership_001',
+                    'status' => 'PENDING',
+                    'checkout_url' => 'https://pay.xendit.test/checkout/membership-001',
+                ]);
+        });
+
+        $response = $this->actingAs($user)->post(route('premium.membership.submit'), [
+            'plan_code' => 'monthly',
+            'channel_code' => 'DANA',
+            'user_note' => 'Bayar via DANA',
+        ]);
+
+        $response->assertRedirect('https://pay.xendit.test/checkout/membership-001');
+
         $this->assertDatabaseHas('subscriptions', [
             'user_id' => $user->id,
             'status' => 'pending',
+            'plan_code' => 'monthly',
+            'xendit_payment_request_id' => 'pr_membership_001',
+            'xendit_latest_payment_id' => 'py_membership_001',
+            'xendit_status' => 'PENDING',
+            'xendit_channel_code' => 'DANA',
+            'xendit_checkout_url' => 'https://pay.xendit.test/checkout/membership-001',
+        ]);
+    }
+
+    public function test_membership_e2e_succeeded_from_checkout_to_webhook(): void
+    {
+        config([
+            'services.xendit.secret_key' => 'xnd_test_key_123456',
+            'services.xendit.base_url' => 'https://api.xendit.co',
+            'services.xendit.webhook_verification_token' => 'valid-token',
+            'premium.xendit.default_channel_code' => 'DANA',
+            'premium.xendit.channels' => [
+                ['code' => 'DANA', 'label' => 'DANA'],
+            ],
+        ]);
+
+        $user = User::factory()->create();
+
+        $this->mock(XenditPaymentRequestService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('createPaymentRequest')
+                ->once()
+                ->andReturn([
+                    'id' => 'pr_membership_e2e_success_001',
+                    'latest_payment_id' => 'py_membership_e2e_success_001',
+                    'status' => 'PENDING',
+                    'checkout_url' => 'https://pay.xendit.test/checkout/membership-e2e-success-001',
+                ]);
+        });
+
+        $submitResponse = $this->actingAs($user)->post(route('premium.membership.submit'), [
+            'plan_code' => 'monthly',
+            'channel_code' => 'DANA',
+            'user_note' => 'Membership E2E success',
+        ]);
+        $submitResponse->assertRedirect('https://pay.xendit.test/checkout/membership-e2e-success-001');
+
+        $subscription = Subscription::query()
+            ->where('user_id', $user->id)
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($subscription);
+        $this->assertSame('pending', $subscription->status);
+
+        $webhookResponse = $this->withHeaders([
+            'X-CALLBACK-TOKEN' => 'valid-token',
+        ])->postJson(route('webhooks.xendit.payment-request'), [
+            'event' => 'payment_request.succeeded',
+            'data' => [
+                'payment_request_id' => 'pr_membership_e2e_success_001',
+                'reference_id' => $subscription->xendit_reference_id,
+                'status' => 'SUCCEEDED',
+            ],
+        ]);
+        $webhookResponse->assertOk();
+
+        $subscription->refresh();
+        $this->assertSame('active', $subscription->status);
+        $this->assertNotNull($subscription->paid_at);
+        $this->assertNotNull($subscription->starts_at);
+        $this->assertNotNull($subscription->ends_at);
+    }
+
+    public function test_membership_e2e_cancelled_from_checkout_to_webhook(): void
+    {
+        config([
+            'services.xendit.secret_key' => 'xnd_test_key_123456',
+            'services.xendit.base_url' => 'https://api.xendit.co',
+            'services.xendit.webhook_verification_token' => 'valid-token',
+            'premium.xendit.default_channel_code' => 'DANA',
+            'premium.xendit.channels' => [
+                ['code' => 'DANA', 'label' => 'DANA'],
+            ],
+        ]);
+
+        $user = User::factory()->create();
+
+        $this->mock(XenditPaymentRequestService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('createPaymentRequest')
+                ->once()
+                ->andReturn([
+                    'id' => 'pr_membership_e2e_cancelled_001',
+                    'latest_payment_id' => 'py_membership_e2e_cancelled_001',
+                    'status' => 'PENDING',
+                    'checkout_url' => 'https://pay.xendit.test/checkout/membership-e2e-cancelled-001',
+                ]);
+        });
+
+        $submitResponse = $this->actingAs($user)->post(route('premium.membership.submit'), [
+            'plan_code' => 'monthly',
+            'channel_code' => 'DANA',
+            'user_note' => 'Membership E2E cancelled',
+        ]);
+        $submitResponse->assertRedirect('https://pay.xendit.test/checkout/membership-e2e-cancelled-001');
+
+        $subscription = Subscription::query()
+            ->where('user_id', $user->id)
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($subscription);
+        $this->assertSame('pending', $subscription->status);
+
+        $webhookResponse = $this->withHeaders([
+            'X-CALLBACK-TOKEN' => 'valid-token',
+        ])->postJson(route('webhooks.xendit.payment-request'), [
+            'event' => 'payment_request.cancelled',
+            'data' => [
+                'payment_request_id' => 'pr_membership_e2e_cancelled_001',
+                'reference_id' => $subscription->xendit_reference_id,
+                'status' => 'CANCELLED',
+            ],
+        ]);
+        $webhookResponse->assertOk();
+
+        $subscription->refresh();
+        $this->assertSame('cancelled', $subscription->status);
+        $this->assertNull($subscription->paid_at);
+    }
+
+    public function test_article_e2e_succeeded_from_checkout_to_webhook(): void
+    {
+        config([
+            'services.xendit.secret_key' => 'xnd_test_key_123456',
+            'services.xendit.base_url' => 'https://api.xendit.co',
+            'services.xendit.webhook_verification_token' => 'valid-token',
+            'premium.xendit.default_channel_code' => 'DANA',
+            'premium.xendit.channels' => [
+                ['code' => 'DANA', 'label' => 'DANA'],
+            ],
+        ]);
+
+        $user = User::factory()->create();
+        $survey = Survey::factory()->create([
+            'user_id' => $user->id,
+            'is_premium' => true,
+            'premium_tier' => 'premium',
+        ]);
+
+        $this->mock(XenditPaymentRequestService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('createPaymentRequest')
+                ->once()
+                ->andReturn([
+                    'id' => 'pr_article_e2e_success_001',
+                    'latest_payment_id' => 'py_article_e2e_success_001',
+                    'status' => 'PENDING',
+                    'checkout_url' => 'https://pay.xendit.test/checkout/article-e2e-success-001',
+                ]);
+        });
+
+        $submitResponse = $this->actingAs($user)->post(route('premium.article.submit', $survey->slug), [
+            'channel_code' => 'DANA',
+            'user_note' => 'Article E2E success',
+        ]);
+        $submitResponse->assertRedirect('https://pay.xendit.test/checkout/article-e2e-success-001');
+
+        $request = ArticlePurchaseRequest::query()
+            ->where('user_id', $user->id)
+            ->where('survey_id', $survey->id)
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($request);
+        $this->assertSame('pending', $request->status);
+
+        $webhookResponse = $this->withHeaders([
+            'X-CALLBACK-TOKEN' => 'valid-token',
+        ])->postJson(route('webhooks.xendit.payment-request'), [
+            'event' => 'payment_request.succeeded',
+            'data' => [
+                'payment_request_id' => 'pr_article_e2e_success_001',
+                'reference_id' => $request->xendit_reference_id,
+                'status' => 'SUCCEEDED',
+            ],
+        ]);
+        $webhookResponse->assertOk();
+
+        $request->refresh();
+        $this->assertSame('succeeded', $request->status);
+        $this->assertNotNull($request->paid_at);
+        $this->assertDatabaseHas('article_entitlements', [
+            'user_id' => $user->id,
+            'survey_id' => $survey->id,
+            'purchase_request_id' => $request->id,
+        ]);
+    }
+
+    public function test_article_e2e_failed_from_checkout_to_webhook(): void
+    {
+        config([
+            'services.xendit.secret_key' => 'xnd_test_key_123456',
+            'services.xendit.base_url' => 'https://api.xendit.co',
+            'services.xendit.webhook_verification_token' => 'valid-token',
+            'premium.xendit.default_channel_code' => 'DANA',
+            'premium.xendit.channels' => [
+                ['code' => 'DANA', 'label' => 'DANA'],
+            ],
+        ]);
+
+        $user = User::factory()->create();
+        $survey = Survey::factory()->create([
+            'user_id' => $user->id,
+            'is_premium' => true,
+            'premium_tier' => 'premium',
+        ]);
+
+        $this->mock(XenditPaymentRequestService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('createPaymentRequest')
+                ->once()
+                ->andReturn([
+                    'id' => 'pr_article_e2e_failed_001',
+                    'latest_payment_id' => 'py_article_e2e_failed_001',
+                    'status' => 'PENDING',
+                    'checkout_url' => 'https://pay.xendit.test/checkout/article-e2e-failed-001',
+                ]);
+        });
+
+        $submitResponse = $this->actingAs($user)->post(route('premium.article.submit', $survey->slug), [
+            'channel_code' => 'DANA',
+            'user_note' => 'Article E2E failed',
+        ]);
+        $submitResponse->assertRedirect('https://pay.xendit.test/checkout/article-e2e-failed-001');
+
+        $request = ArticlePurchaseRequest::query()
+            ->where('user_id', $user->id)
+            ->where('survey_id', $survey->id)
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($request);
+        $this->assertSame('pending', $request->status);
+
+        $webhookResponse = $this->withHeaders([
+            'X-CALLBACK-TOKEN' => 'valid-token',
+        ])->postJson(route('webhooks.xendit.payment-request'), [
+            'event' => 'payment_request.failed',
+            'data' => [
+                'payment_request_id' => 'pr_article_e2e_failed_001',
+                'reference_id' => $request->xendit_reference_id,
+                'status' => 'FAILED',
+            ],
+        ]);
+        $webhookResponse->assertOk();
+
+        $request->refresh();
+        $this->assertSame('failed', $request->status);
+        $this->assertNull($request->paid_at);
+        $this->assertDatabaseMissing('article_entitlements', [
+            'user_id' => $user->id,
+            'survey_id' => $survey->id,
+            'purchase_request_id' => $request->id,
         ]);
     }
 
@@ -60,103 +358,49 @@ class PremiumSubscriptionTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_admin_can_approve_subscription(): void
+    public function test_admin_page_exposes_xendit_health_check_payload(): void
     {
+        config([
+            'services.xendit.secret_key' => 'xnd_test_health_key_123456',
+            'services.xendit.webhook_verification_token' => 'xendit-health-token',
+            'services.xendit.base_url' => 'https://api.xendit.co',
+            'premium.xendit.default_channel_code' => 'DANA',
+            'premium.xendit.channels' => [
+                ['code' => 'DANA', 'label' => 'DANA'],
+            ],
+        ]);
+
         $admin = User::factory()->create();
         $admin->assignRole('super_admin');
-        $member = User::factory()->create();
-        $member->assignRole('member');
-        $subscription = Subscription::create([
-            'user_id' => $member->id,
-            'status' => 'pending',
-            'plan_name' => 'Premium Bulanan',
-            'duration_days' => 30,
-        ]);
 
-        $response = $this->actingAs($admin)->post(
-            route('premium.admin.subscriptions.approve', $subscription->id),
-            ['admin_note' => 'Pembayaran valid']
-        );
-
-        $response->assertSessionHasNoErrors();
-        $this->assertDatabaseHas('subscriptions', [
-            'id' => $subscription->id,
-            'status' => 'active',
-            'verified_by' => $admin->id,
-        ]);
-    }
-
-    public function test_user_can_download_own_subscription_proof_file(): void
-    {
-        Storage::fake('local');
-        $user = User::factory()->create();
-        $path = 'private/payments/memberships/test-proof.pdf';
-        Storage::disk('local')->put($path, 'dummy-proof');
-
-        $subscription = Subscription::create([
-            'user_id' => $user->id,
-            'status' => 'pending',
-            'plan_name' => 'Premium Bulanan',
-            'duration_days' => 30,
-            'proof_path' => $path,
-        ]);
-
-        $response = $this->actingAs($user)->get(route('premium.proofs.subscription', $subscription->id));
+        $response = $this->actingAs($admin)->get(route('premium.admin.subscriptions'));
 
         $response->assertOk();
-        $response->assertDownload('subscription-' . $subscription->id . '.pdf');
+        $response->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Premium/AdminSubscriptions')
+            ->has('xenditHealth')
+            ->where('xenditHealth.overall', fn ($value) => in_array($value, ['ok', 'warning', 'error'], true))
+            ->has('xenditHealth.summary.ok')
+            ->has('xenditHealth.summary.warning')
+            ->has('xenditHealth.summary.error')
+            ->has('xenditHealth.items', 7)
+            ->where('xenditHealth.items.0.key', 'secret_key')
+            ->where('xenditHealth.items.1.key', 'webhook_token')
+            ->where('xenditHealth.items.2.key', 'base_url')
+            ->where('xenditHealth.items.3.key', 'config_cache')
+            ->where('xenditHealth.items.4.key', 'channels')
+            ->where('xenditHealth.items.5.key', 'webhook_routes')
+            ->where('xenditHealth.items.6.key', 'database_schema'));
     }
 
-    public function test_non_owner_member_cannot_download_other_users_subscription_proof_file(): void
+    public function test_manual_proof_and_approval_routes_are_removed(): void
     {
-        Storage::fake('local');
-        $owner = User::factory()->create();
-        $otherMember = User::factory()->create();
-        $otherMember->assignRole('member');
-
-        $path = 'private/payments/memberships/private-proof.pdf';
-        Storage::disk('local')->put($path, 'dummy-proof');
-
-        $subscription = Subscription::create([
-            'user_id' => $owner->id,
-            'status' => 'pending',
-            'plan_name' => 'Premium Bulanan',
-            'duration_days' => 30,
-            'proof_path' => $path,
-        ]);
-
-        $response = $this->actingAs($otherMember)->get(route('premium.proofs.subscription', $subscription->id));
-
-        $response->assertForbidden();
-    }
-
-    public function test_admin_can_download_article_purchase_proof_file(): void
-    {
-        Storage::fake('local');
-        $admin = User::factory()->create();
-        $admin->assignRole('super_admin');
-        $member = User::factory()->create();
-
-        $survey = \App\Models\Survey::factory()->create([
-            'user_id' => $member->id,
-            'is_premium' => true,
-        ]);
-
-        $path = 'private/payments/articles/article-proof.pdf';
-        Storage::disk('local')->put($path, 'dummy-proof');
-
-        $request = ArticlePurchaseRequest::create([
-            'user_id' => $member->id,
-            'survey_id' => $survey->id,
-            'status' => 'pending',
-            'amount' => 10000,
-            'proof_path' => $path,
-        ]);
-
-        $response = $this->actingAs($admin)->get(route('premium.proofs.article', $request->id));
-
-        $response->assertOk();
-        $response->assertDownload('article-' . $request->id . '.pdf');
+        $this->assertFalse(Route::has('premium.proofs.subscription'));
+        $this->assertFalse(Route::has('premium.proofs.article'));
+        $this->assertFalse(Route::has('premium.admin.subscriptions.approve'));
+        $this->assertFalse(Route::has('premium.admin.subscriptions.reject'));
+        $this->assertFalse(Route::has('premium.admin.articles.approve'));
+        $this->assertFalse(Route::has('premium.admin.articles.reject'));
     }
 
     public function test_article_purchase_form_exposes_picker_articles_and_excludes_owned_items(): void
@@ -164,21 +408,21 @@ class PremiumSubscriptionTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('member');
 
-        $currentSurvey = \App\Models\Survey::factory()->create([
+        $currentSurvey = Survey::factory()->create([
             'user_id' => $user->id,
             'title' => 'Current Premium Article',
             'slug' => 'current-premium-article',
             'is_premium' => true,
         ]);
 
-        $ownedSurvey = \App\Models\Survey::factory()->create([
+        $ownedSurvey = Survey::factory()->create([
             'user_id' => $user->id,
             'title' => 'Owned Premium Article',
             'slug' => 'owned-premium-article',
             'is_premium' => true,
         ]);
 
-        $availableSurvey = \App\Models\Survey::factory()->create([
+        $availableSurvey = Survey::factory()->create([
             'user_id' => $user->id,
             'title' => 'Available Premium Article',
             'slug' => 'available-premium-article',
@@ -202,7 +446,6 @@ class PremiumSubscriptionTest extends TestCase
             ->where('availablePremiumArticles.1.slug', function ($slug) use ($currentSurvey, $availableSurvey) {
                 return in_array($slug, [$currentSurvey->slug, $availableSurvey->slug], true);
             })
-            ->missing('availablePremiumArticles.2')
-        );
+            ->missing('availablePremiumArticles.2'));
     }
 }

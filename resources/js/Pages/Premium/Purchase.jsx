@@ -280,7 +280,7 @@ export default function Purchase({
                     <section className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 shadow-xl">
                         <h3 className="text-lg font-bold text-white">Pending Artikel Satuan</h3>
                         <p className="text-sm text-slate-300 mt-1 mb-4">
-                            Daftar pengajuan artikel yang masih menunggu verifikasi.
+                            Daftar transaksi artikel yang masih pending di Xendit.
                         </p>
                         {pendingArticleRequests.length === 0 ? (
                             <div className="rounded-xl border border-dashed border-slate-600 bg-slate-800/60 p-5 text-sm text-slate-300">
@@ -294,14 +294,20 @@ export default function Purchase({
                                         <p className="text-xs text-slate-300 mt-1">
                                             Diajukan: {item.created_at ? new Date(item.created_at).toLocaleDateString("id-ID") : "-"}
                                         </p>
-                                        {item.proof_path ? (
+                                        <p className="text-xs text-slate-300 mt-1">
+                                            Status: <span className="font-semibold uppercase">{item.status || "-"}</span>
+                                        </p>
+                                        <p className="text-xs text-slate-400 mt-1 font-mono">
+                                            Ref: {item.xendit_reference_id || "-"}
+                                        </p>
+                                        {item.xendit_checkout_url ? (
                                             <a
-                                                href={route("premium.proofs.article", item.id)}
+                                                href={item.xendit_checkout_url}
                                                 className="mt-2 inline-block text-sm text-blue-300 hover:underline"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                             >
-                                                Lihat Bukti Pembayaran
+                                                Lanjutkan Pembayaran
                                             </a>
                                         ) : null}
                                     </div>

@@ -17,7 +17,7 @@ export default function Welcome({
     const premiumHref = auth?.user
         ? route("premium.purchase")
         : route("login");
-    const premiumCtaLabel = auth?.user ? "Ajukan Premium" : "Login untuk Premium";
+    const premiumCtaLabel = auth?.user ? "Lihat Paket Premium" : "Login untuk Premium";
 
     // Data untuk Hero Component
     const heroData = {
@@ -119,7 +119,7 @@ export default function Welcome({
                             </h3>
                             <p className="text-slate-600 max-w-3xl mx-auto">
                                 Akses penuh artikel premium, analisis lanjutan,
-                                dan data eksklusif dengan verifikasi manual yang
+                                dan data eksklusif dengan pembayaran Xendit yang
                                 aman.
                             </p>
                         </div>
@@ -141,10 +141,10 @@ export default function Welcome({
                                     LANGKAH 2
                                 </p>
                                 <h4 className="font-bold text-slate-900 mb-1">
-                                    Transfer Pembayaran
+                                    Pilih Metode Bayar
                                 </h4>
                                 <p className="text-sm text-slate-600">
-                                    Lakukan transfer sesuai paket premium.
+                                    Pilih channel pembayaran yang tersedia di Xendit.
                                 </p>
                             </div>
                             <div className="rounded-2xl border border-slate-200 p-5 bg-slate-50">
@@ -152,10 +152,10 @@ export default function Welcome({
                                     LANGKAH 3
                                 </p>
                                 <h4 className="font-bold text-slate-900 mb-1">
-                                    Upload Bukti
+                                    Selesaikan Pembayaran
                                 </h4>
                                 <p className="text-sm text-slate-600">
-                                    Unggah bukti pembayaran di halaman premium.
+                                    Lanjutkan checkout hingga status sukses di Xendit.
                                 </p>
                             </div>
                             <div className="rounded-2xl border border-slate-200 p-5 bg-slate-50">
@@ -163,10 +163,10 @@ export default function Welcome({
                                     LANGKAH 4
                                 </p>
                                 <h4 className="font-bold text-slate-900 mb-1">
-                                    Aktivasi Admin
+                                    Akses Aktif Otomatis
                                 </h4>
                                 <p className="text-sm text-slate-600">
-                                    Admin verifikasi lalu akses premium aktif.
+                                    Sistem akan mengaktifkan akses premium secara otomatis.
                                 </p>
                             </div>
                         </div>
@@ -179,8 +179,7 @@ export default function Welcome({
                                 {premiumCtaLabel}
                             </Link>
                             <span className="text-sm text-slate-500 text-center">
-                                Proses verifikasi manual biasanya selesai dalam
-                                1x24 jam kerja.
+                                Aktivasi dilakukan otomatis saat transaksi berstatus sukses.
                             </span>
                         </div>
                     </div>

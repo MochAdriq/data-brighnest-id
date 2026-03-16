@@ -3,8 +3,6 @@ import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, useForm } from "@inertiajs/react";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 
-const todayIso = new Date().toISOString().slice(0, 10);
-
 const formatRupiah = (value) =>
     new Intl.NumberFormat("id-ID", {
         style: "currency",
@@ -18,12 +16,8 @@ export default function Checkout({ auth, plan, xendit = null }) {
 
     const form = useForm({
         plan_code: plan?.code || "",
-        payment_method: "Transfer Bank",
         channel_code: xenditChannels?.[0]?.code || "",
-        transfer_date: todayIso,
-        reference_no: "",
         user_note: "",
-        proof_file: null,
     });
 
     const submit = (e) => {
@@ -108,59 +102,8 @@ export default function Checkout({ auth, plan, xendit = null }) {
                                     </p>
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-sm font-medium text-slate-200">Metode Pembayaran</label>
-                                        <input
-                                            type="text"
-                                            value={form.data.payment_method}
-                                            onChange={(e) => form.setData("payment_method", e.target.value)}
-                                            className="mt-1 w-full rounded-lg border-slate-700 bg-slate-950 text-white"
-                                        />
-                                        {form.errors.payment_method && (
-                                            <p className="text-xs text-red-400 mt-1">{form.errors.payment_method}</p>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-slate-200">Tanggal Transfer</label>
-                                        <input
-                                            type="date"
-                                            value={form.data.transfer_date}
-                                            onChange={(e) => form.setData("transfer_date", e.target.value)}
-                                            className="mt-1 w-full rounded-lg border-slate-700 bg-slate-950 text-white"
-                                        />
-                                        {form.errors.transfer_date && (
-                                            <p className="text-xs text-red-400 mt-1">{form.errors.transfer_date}</p>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            {!xenditEnabled && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-sm font-medium text-slate-200">No. Referensi (opsional)</label>
-                                        <input
-                                            type="text"
-                                            value={form.data.reference_no}
-                                            onChange={(e) => form.setData("reference_no", e.target.value)}
-                                            className="mt-1 w-full rounded-lg border-slate-700 bg-slate-950 text-white"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-slate-200">
-                                            Bukti Pembayaran (jpg/png/pdf)
-                                        </label>
-                                        <input
-                                            type="file"
-                                            accept=".jpg,.jpeg,.png,.pdf"
-                                            onChange={(e) => form.setData("proof_file", e.target.files[0])}
-                                            className="mt-1 block w-full text-sm text-slate-200"
-                                        />
-                                        {form.errors.proof_file && (
-                                            <p className="text-xs text-red-400 mt-1">{form.errors.proof_file}</p>
-                                        )}
-                                    </div>
+                                <div className="rounded-xl border border-rose-400/40 bg-rose-500/10 p-3 text-xs text-rose-200">
+                                    Pembayaran online sedang tidak tersedia. Coba lagi nanti atau hubungi admin.
                                 </div>
                             )}
 
@@ -181,14 +124,12 @@ export default function Checkout({ auth, plan, xendit = null }) {
                                 </p>
                                 <button
                                     type="submit"
-                                    disabled={form.processing}
+                                    disabled={form.processing || !xenditEnabled}
                                     className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
                                 >
                                     {form.processing
                                         ? "Memproses..."
-                                        : xenditEnabled
-                                          ? "Lanjut ke Xendit"
-                                          : "Lanjut Pembayaran"}
+                                        : "Lanjut ke Xendit"}
                                 </button>
                             </div>
                         </form>

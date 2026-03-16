@@ -89,20 +89,14 @@ Route::middleware('auth')->group(function () {
     // 5. Komentar (Story/News)
     Route::post('/data/{survey}/comments', [SurveyController::class, 'storeComment'])->name('surveys.comments.store');
 
-    // 6. Premium Manual Purchase
+    // 6. Premium Purchase (Xendit-only)
     Route::get('/premium/purchase', [PremiumController::class, 'purchase'])->name('premium.purchase');
     Route::get('/premium/checkout', [PremiumController::class, 'checkout'])->name('premium.checkout');
     Route::post('/premium/purchase', [PremiumController::class, 'submit'])->name('premium.submit'); // Backward compatible
     Route::post('/premium/membership/submit', [PremiumController::class, 'submitMembership'])->name('premium.membership.submit');
     Route::get('/premium/article/{survey}/purchase', [PremiumController::class, 'articlePurchaseForm'])->name('premium.article.purchase');
     Route::post('/premium/article/{survey}/submit', [PremiumController::class, 'submitArticle'])->name('premium.article.submit');
-    Route::get('/premium/proofs/subscriptions/{subscription}', [PremiumController::class, 'downloadSubscriptionProof'])->name('premium.proofs.subscription');
-    Route::get('/premium/proofs/articles/{articlePurchaseRequest}', [PremiumController::class, 'downloadArticleProof'])->name('premium.proofs.article');
     Route::get('/premium/admin/subscriptions', [PremiumController::class, 'adminIndex'])->name('premium.admin.subscriptions')->middleware('role:super_admin');
-    Route::post('/premium/admin/subscriptions/{subscription}/approve', [PremiumController::class, 'approve'])->name('premium.admin.subscriptions.approve')->middleware('role:super_admin');
-    Route::post('/premium/admin/subscriptions/{subscription}/reject', [PremiumController::class, 'reject'])->name('premium.admin.subscriptions.reject')->middleware('role:super_admin');
-    Route::post('/premium/admin/articles/{articlePurchaseRequest}/approve', [PremiumController::class, 'approveArticle'])->name('premium.admin.articles.approve')->middleware('role:super_admin');
-    Route::post('/premium/admin/articles/{articlePurchaseRequest}/reject', [PremiumController::class, 'rejectArticle'])->name('premium.admin.articles.reject')->middleware('role:super_admin');
 
     // 7. Manajemen Role User (Super Admin)
     Route::get('/admin/user-roles', [UserRoleController::class, 'index'])->name('admin.user-roles.index')->middleware('role:super_admin');

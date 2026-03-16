@@ -147,7 +147,7 @@ export default function Dashboard({
                                         </div>
                                         <div className="ml-4">
                                             <p className="text-sm font-medium text-gray-500">
-                                                Pending Verifikasi Premium
+                                                Pending Pembayaran Premium
                                             </p>
                                             <p className="text-2xl font-bold text-gray-800">
                                                 {
@@ -172,7 +172,7 @@ export default function Dashboard({
                                 <div className="p-6 text-gray-900">
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
                                         <h3 className="text-lg font-bold">
-                                            Antrian Verifikasi Premium
+                                            Antrian Pembayaran Membership
                                         </h3>
                                         <Link
                                             href={route(
@@ -180,7 +180,7 @@ export default function Dashboard({
                                             )}
                                             className="text-sm font-semibold text-emerald-700 hover:underline"
                                         >
-                                            Buka Halaman Verifikasi Lengkap
+                                            Buka Monitoring Premium
                                         </Link>
                                     </div>
 
@@ -205,46 +205,46 @@ export default function Dashboard({
                                                             </p>
                                                             <div className="grid grid-cols-2 gap-2 text-xs">
                                                                 <span className="text-gray-500">
-                                                                    Metode
+                                                                    Status
                                                                 </span>
                                                                 <span className="font-medium text-right">
-                                                                    {item.payment_method ||
-                                                                        "-"}
+                                                                    {String(
+                                                                        item.status ||
+                                                                            "-",
+                                                                    ).toUpperCase()}
                                                                 </span>
                                                                 <span className="text-gray-500">
-                                                                    Tanggal
+                                                                    Channel
                                                                 </span>
                                                                 <span className="font-medium text-right">
-                                                                    {item.transfer_date
+                                                                    {item.xendit_channel_code ||
+                                                                        "-"}
+                                                                </span>
+                                                            </div>
+                                                            <p className="mt-2 text-[11px] font-mono text-gray-500 break-all">
+                                                                Ref: {item.xendit_reference_id || "-"}
+                                                            </p>
+                                                            <div className="mt-3 flex items-center justify-between gap-2">
+                                                                <p className="text-xs text-gray-500">
+                                                                    Dibuat:{" "}
+                                                                    {item.created_at
                                                                         ? new Date(
-                                                                              item.transfer_date,
+                                                                              item.created_at,
                                                                           ).toLocaleDateString(
                                                                               "id-ID",
                                                                           )
                                                                         : "-"}
-                                                                </span>
-                                                            </div>
-                                                            <div className="mt-3">
-                                                                {item.proof_path ? (
+                                                                </p>
+                                                                {item.xendit_checkout_url ? (
                                                                     <a
-                                                                        href={route(
-                                                                            "premium.proofs.subscription",
-                                                                            item.id,
-                                                                        )}
+                                                                        href={item.xendit_checkout_url}
                                                                         className="text-blue-600 hover:underline text-sm font-semibold"
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
                                                                     >
-                                                                        Lihat
-                                                                        Bukti
+                                                                        Buka Checkout
                                                                     </a>
-                                                                ) : (
-                                                                    <span className="text-sm text-gray-400">
-                                                                        Bukti
-                                                                        tidak
-                                                                        ada
-                                                                    </span>
-                                                                )}
+                                                                ) : null}
                                                             </div>
                                                         </div>
                                                     ),
@@ -259,13 +259,16 @@ export default function Dashboard({
                                                                 Nama
                                                             </th>
                                                             <th className="px-4 py-3">
-                                                                Metode
+                                                                Status
                                                             </th>
                                                             <th className="px-4 py-3">
-                                                                Tanggal
+                                                                Channel
                                                             </th>
                                                             <th className="px-4 py-3">
-                                                                Bukti
+                                                                Xendit Ref
+                                                            </th>
+                                                            <th className="px-4 py-3">
+                                                                Dibuat
                                                             </th>
                                                         </tr>
                                                     </thead>
@@ -293,35 +296,41 @@ export default function Dashboard({
                                                                         </p>
                                                                     </td>
                                                                     <td className="px-4 py-3">
-                                                                        {item.payment_method ||
+                                                                        {String(
+                                                                            item.status ||
+                                                                                "-",
+                                                                        ).toUpperCase()}
+                                                                    </td>
+                                                                    <td className="px-4 py-3">
+                                                                        {item.xendit_channel_code ||
+                                                                            "-"}
+                                                                    </td>
+                                                                    <td className="px-4 py-3 font-mono text-xs break-all">
+                                                                        {item.xendit_reference_id ||
                                                                             "-"}
                                                                     </td>
                                                                     <td className="px-4 py-3">
-                                                                        {item.transfer_date
-                                                                            ? new Date(
-                                                                                  item.transfer_date,
-                                                                              ).toLocaleDateString(
-                                                                                  "id-ID",
-                                                                              )
-                                                                            : "-"}
-                                                                    </td>
-                                                                    <td className="px-4 py-3">
-                                                                        {item.proof_path ? (
-                                                                            <a
-                                                                                href={route(
-                                                                                    "premium.proofs.subscription",
-                                                                                    item.id,
-                                                                                )}
-                                                                                className="text-blue-600 hover:underline"
-                                                                                target="_blank"
-                                                                                rel="noopener noreferrer"
-                                                                            >
-                                                                                Lihat
-                                                                                Bukti
-                                                                            </a>
-                                                                        ) : (
-                                                                            "-"
-                                                                        )}
+                                                                        <div className="flex items-center justify-between gap-2">
+                                                                            <span>
+                                                                                {item.created_at
+                                                                                    ? new Date(
+                                                                                          item.created_at,
+                                                                                      ).toLocaleDateString(
+                                                                                          "id-ID",
+                                                                                      )
+                                                                                    : "-"}
+                                                                            </span>
+                                                                            {item.xendit_checkout_url ? (
+                                                                                <a
+                                                                                    href={item.xendit_checkout_url}
+                                                                                    className="text-blue-600 hover:underline text-xs"
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                >
+                                                                                    Checkout
+                                                                                </a>
+                                                                            ) : null}
+                                                                        </div>
                                                                     </td>
                                                                 </tr>
                                                             ),
@@ -333,12 +342,12 @@ export default function Dashboard({
                                     ) : (
                                         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5">
                                             <p className="text-sm font-semibold text-slate-700">
-                                                Tidak ada antrian verifikasi
-                                                membership.
+                                                Tidak ada transaksi membership
+                                                yang pending.
                                             </p>
                                             <p className="text-xs text-slate-500 mt-1">
-                                                Saat ada pengajuan baru, daftar
-                                                ini akan tampil di sini.
+                                                Saat ada transaksi baru, daftar
+                                                ini akan muncul otomatis.
                                             </p>
                                         </div>
                                     )}
@@ -351,7 +360,7 @@ export default function Dashboard({
                                 <div className="p-6 text-gray-900">
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
                                         <h3 className="text-lg font-bold">
-                                            Antrian Verifikasi Artikel Satuan
+                                            Antrian Pembayaran Artikel Satuan
                                         </h3>
                                         <Link
                                             href={route(
@@ -359,7 +368,7 @@ export default function Dashboard({
                                             )}
                                             className="text-sm font-semibold text-emerald-700 hover:underline"
                                         >
-                                            Buka Halaman Verifikasi Lengkap
+                                            Buka Monitoring Premium
                                         </Link>
                                     </div>
 
@@ -404,46 +413,37 @@ export default function Dashboard({
                                                             </div>
                                                             <div className="grid grid-cols-2 gap-2 text-xs">
                                                                 <span className="text-gray-500">
-                                                                    Metode
+                                                                    Status
                                                                 </span>
                                                                 <span className="font-medium text-right">
-                                                                    {item.payment_method ||
-                                                                        "-"}
+                                                                    {String(
+                                                                        item.status ||
+                                                                            "-",
+                                                                    ).toUpperCase()}
                                                                 </span>
                                                                 <span className="text-gray-500">
-                                                                    Tanggal
+                                                                    Channel
                                                                 </span>
                                                                 <span className="font-medium text-right">
-                                                                    {item.transfer_date
-                                                                        ? new Date(
-                                                                              item.transfer_date,
-                                                                          ).toLocaleDateString(
-                                                                              "id-ID",
-                                                                          )
-                                                                        : "-"}
+                                                                    {item.xendit_channel_code ||
+                                                                        "-"}
                                                                 </span>
                                                             </div>
+                                                            <p className="mt-2 text-[11px] font-mono text-gray-500 break-all">
+                                                                Ref: {item.xendit_reference_id || "-"}
+                                                            </p>
                                                             <div className="mt-3 flex items-center gap-3">
-                                                                {item.proof_path ? (
+                                                                {item.xendit_checkout_url ? (
                                                                     <a
-                                                                        href={route(
-                                                                            "premium.proofs.article",
-                                                                            item.id,
-                                                                        )}
+                                                                        href={item.xendit_checkout_url}
                                                                         className="text-blue-600 hover:underline text-sm font-semibold"
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
                                                                     >
-                                                                        Lihat
-                                                                        Bukti
+                                                                        Buka
+                                                                        Checkout
                                                                     </a>
-                                                                ) : (
-                                                                    <span className="text-sm text-gray-400">
-                                                                        Bukti
-                                                                        tidak
-                                                                        ada
-                                                                    </span>
-                                                                )}
+                                                                ) : null}
                                                                 {item.survey
                                                                     ?.slug ? (
                                                                     <Link
@@ -477,13 +477,13 @@ export default function Dashboard({
                                                                 Artikel
                                                             </th>
                                                             <th className="px-4 py-3">
-                                                                Metode
+                                                                Status
                                                             </th>
                                                             <th className="px-4 py-3">
-                                                                Tanggal
+                                                                Channel
                                                             </th>
                                                             <th className="px-4 py-3">
-                                                                Bukti
+                                                                Xendit Ref
                                                             </th>
                                                         </tr>
                                                     </thead>
@@ -548,35 +548,18 @@ export default function Dashboard({
                                                                         ) : null}
                                                                     </td>
                                                                     <td className="px-4 py-3">
-                                                                        {item.payment_method ||
+                                                                        {String(
+                                                                            item.status ||
+                                                                                "-",
+                                                                        ).toUpperCase()}
+                                                                    </td>
+                                                                    <td className="px-4 py-3">
+                                                                        {item.xendit_channel_code ||
                                                                             "-"}
                                                                     </td>
-                                                                    <td className="px-4 py-3">
-                                                                        {item.transfer_date
-                                                                            ? new Date(
-                                                                                  item.transfer_date,
-                                                                              ).toLocaleDateString(
-                                                                                  "id-ID",
-                                                                              )
-                                                                            : "-"}
-                                                                    </td>
-                                                                    <td className="px-4 py-3">
-                                                                        {item.proof_path ? (
-                                                                            <a
-                                                                                href={route(
-                                                                                    "premium.proofs.article",
-                                                                                    item.id,
-                                                                                )}
-                                                                                className="text-blue-600 hover:underline"
-                                                                                target="_blank"
-                                                                                rel="noopener noreferrer"
-                                                                            >
-                                                                                Lihat
-                                                                                Bukti
-                                                                            </a>
-                                                                        ) : (
-                                                                            "-"
-                                                                        )}
+                                                                    <td className="px-4 py-3 font-mono text-xs break-all">
+                                                                        {item.xendit_reference_id ||
+                                                                            "-"}
                                                                     </td>
                                                                 </tr>
                                                             ),
@@ -588,12 +571,12 @@ export default function Dashboard({
                                     ) : (
                                         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5">
                                             <p className="text-sm font-semibold text-slate-700">
-                                                Tidak ada antrian verifikasi
-                                                artikel satuan.
+                                                Tidak ada transaksi artikel
+                                                yang pending.
                                             </p>
                                             <p className="text-xs text-slate-500 mt-1">
-                                                Data akan muncul otomatis ketika
-                                                user mengirim pengajuan.
+                                                Data akan muncul otomatis saat
+                                                ada transaksi baru.
                                             </p>
                                         </div>
                                     )}

@@ -114,7 +114,11 @@ class XenditWebhookController extends Controller
     private function resolveStatus(string $event, array $data): ?string
     {
         $status = strtoupper((string) ($data['status'] ?? ''));
-        if (in_array($status, ['SUCCEEDED', 'FAILED', 'EXPIRED'], true)) {
+        if ($status === 'CANCELED') {
+            $status = 'CANCELLED';
+        }
+
+        if (in_array($status, ['SUCCEEDED', 'FAILED', 'EXPIRED', 'CANCELLED'], true)) {
             return $status;
         }
 
@@ -122,6 +126,8 @@ class XenditWebhookController extends Controller
             'payment.capture', 'payment_request.succeeded', 'payment_request.success' => 'SUCCEEDED',
             'payment.failure', 'payment_request.failed', 'payment_request.failure' => 'FAILED',
             'payment_request.expiry', 'payment_request.expired' => 'EXPIRED',
+            'payment.cancel', 'payment.cancelled', 'payment.canceled',
+            'payment_request.cancel', 'payment_request.cancelled', 'payment_request.canceled' => 'CANCELLED',
             default => null,
         };
     }
@@ -159,15 +165,11 @@ class XenditWebhookController extends Controller
             $updates['status'] = 'active';
             $updates['starts_at'] = $startsAt;
             $updates['ends_at'] = (clone $startsAt)->addDays($durationDays);
-            $updates['reviewed_at'] = Carbon::now();
             $updates['paid_at'] = Carbon::now();
-            $updates['admin_note'] = trim((string) ($subscription->admin_note ?? '') . ' Auto-activated by Xendit webhook.');
         }
 
-        if ($subscription->status === 'pending' && in_array($status, ['FAILED', 'EXPIRED'], true)) {
-            $updates['status'] = 'rejected';
-            $updates['reviewed_at'] = Carbon::now();
-            $updates['admin_note'] = trim((string) ($subscription->admin_note ?? '') . " Auto-updated by Xendit webhook ({$status}).");
+        if ($subscription->status === 'pending' && in_array($status, ['FAILED', 'EXPIRED', 'CANCELLED'], true)) {
+            $updates['status'] = strtolower($status);
         }
 
         $subscription->update($updates);
@@ -204,10 +206,8 @@ class XenditWebhookController extends Controller
         if ($request->status === 'pending' && $status === 'SUCCEEDED') {
             DB::transaction(function () use ($request, $updates): void {
                 $request->update(array_merge($updates, [
-                    'status' => 'approved',
-                    'reviewed_at' => Carbon::now(),
+                    'status' => 'succeeded',
                     'paid_at' => Carbon::now(),
-                    'admin_note' => trim((string) ($request->admin_note ?? '') . ' Auto-approved by Xendit webhook.'),
                 ]));
 
                 ArticleEntitlement::firstOrCreate(
@@ -217,7 +217,6 @@ class XenditWebhookController extends Controller
                     ],
                     [
                         'purchase_request_id' => $request->id,
-                        'granted_by' => null,
                         'granted_at' => Carbon::now(),
                     ],
                 );
@@ -226,11 +225,9 @@ class XenditWebhookController extends Controller
             return true;
         }
 
-        if ($request->status === 'pending' && in_array($status, ['FAILED', 'EXPIRED'], true)) {
+        if ($request->status === 'pending' && in_array($status, ['FAILED', 'EXPIRED', 'CANCELLED'], true)) {
             $request->update(array_merge($updates, [
-                'status' => 'rejected',
-                'reviewed_at' => Carbon::now(),
-                'admin_note' => trim((string) ($request->admin_note ?? '') . " Auto-updated by Xendit webhook ({$status})."),
+                'status' => strtolower($status),
             ]));
 
             return true;

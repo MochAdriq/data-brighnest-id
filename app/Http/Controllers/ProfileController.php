@@ -42,14 +42,13 @@ class ProfileController extends Controller
             ->count();
         $subscriptionHistory = $request->user()
             ->subscriptions()
-            ->with('verifier:id,name')
             ->latest('created_at')
             ->take(12)
             ->get()
             ->values();
         $articlePurchaseHistory = $request->user()
             ->articlePurchaseRequests()
-            ->with(['verifier:id,name', 'survey:id,title,slug,type'])
+            ->with(['survey:id,title,slug,type'])
             ->latest('created_at')
             ->take(12)
             ->get()

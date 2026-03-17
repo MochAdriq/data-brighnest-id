@@ -104,10 +104,12 @@ Route::middleware('auth')->group(function () {
     Route::put('/admin/user-roles/{user}', [UserRoleController::class, 'update'])->name('admin.user-roles.update')->middleware('role:super_admin');
 
     // 8. Banner Popup Promosi (Super Admin)
-    Route::get('/admin/promo-banners', [PromoBannerController::class, 'index'])->name('admin.promo-banners.index')->middleware('role:super_admin');
-    Route::post('/admin/promo-banners', [PromoBannerController::class, 'store'])->name('admin.promo-banners.store')->middleware('role:super_admin');
-    Route::put('/admin/promo-banners/{promoBanner}', [PromoBannerController::class, 'update'])->name('admin.promo-banners.update')->middleware('role:super_admin');
-    Route::delete('/admin/promo-banners/{promoBanner}', [PromoBannerController::class, 'destroy'])->name('admin.promo-banners.destroy')->middleware('role:super_admin');
+    Route::get('/admin/promo-banners', [PromoBannerController::class, 'index'])->name('admin.promo-banners.index');
+    Route::post('/admin/promo-banners/store', [PromoBannerController::class, 'store'])->name('admin.promo-banners.store');
+    // Backward-compatible endpoint lama.
+    Route::post('/admin/promo-banners', [PromoBannerController::class, 'store'])->name('admin.promo-banners.store.legacy');
+    Route::put('/admin/promo-banners/{promoBanner}', [PromoBannerController::class, 'update'])->name('admin.promo-banners.update');
+    Route::delete('/admin/promo-banners/{promoBanner}', [PromoBannerController::class, 'destroy'])->name('admin.promo-banners.destroy');
 });
 
 // Route Public (Bisa diakses tanpa login)

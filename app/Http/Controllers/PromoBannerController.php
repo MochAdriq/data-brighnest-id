@@ -12,6 +12,8 @@ class PromoBannerController extends Controller
 {
     public function index(Request $request)
     {
+        $this->ensureAdmin($request);
+
         $search = trim((string) $request->query('q', ''));
 
         $banners = PromoBanner::query()
@@ -58,6 +60,8 @@ class PromoBannerController extends Controller
 
     public function store(Request $request)
     {
+        $this->ensureAdmin($request);
+
         $validated = $this->validatePayload($request, true);
         $imagePath = $request->file('image_file')->store('promo-banners', 'public');
 
@@ -80,6 +84,8 @@ class PromoBannerController extends Controller
 
     public function update(Request $request, PromoBanner $promoBanner)
     {
+        $this->ensureAdmin($request);
+
         $validated = $this->validatePayload($request, false);
 
         $payload = [
@@ -106,8 +112,10 @@ class PromoBannerController extends Controller
         return back()->with('success', 'Banner popup berhasil diperbarui.');
     }
 
-    public function destroy(PromoBanner $promoBanner)
+    public function destroy(Request $request, PromoBanner $promoBanner)
     {
+        $this->ensureAdmin($request);
+
         if ($promoBanner->image_path && Storage::disk('public')->exists($promoBanner->image_path)) {
             Storage::disk('public')->delete($promoBanner->image_path);
         }
@@ -192,5 +200,24 @@ class PromoBannerController extends Controller
             PromoBanner::TARGET_ALL_LOGGED_IN => 'Semua User Login',
         ];
     }
-}
 
+    private function ensureAdmin(Request $request): void
+    {
+        $user = $request->user();
+        if (!$user) {
+            abort(403, 'Anda harus login untuk mengakses halaman ini.');
+        }
+
+        // Query role langsung dari DB agar tidak terdampak cache permission yang stale.
+        $roleNames = $user->roles()
+            ->pluck('name')
+            ->map(fn ($name) => strtolower(trim((string) $name)))
+            ->all();
+
+        $isAllowed = in_array('super_admin', $roleNames, true);
+
+        if (!$isAllowed) {
+            abort(403, 'Hanya super admin yang bisa mengelola popup banner.');
+        }
+    }
+}

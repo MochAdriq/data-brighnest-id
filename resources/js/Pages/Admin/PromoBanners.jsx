@@ -257,6 +257,8 @@ export default function PromoBanners({
     filters = {},
     targetOptions = {},
 }) {
+    const pageRoute = (name, params = {}) => route(name, params, false);
+
     const targetEntries = useMemo(
         () => Object.entries(targetOptions || {}),
         [targetOptions],
@@ -280,7 +282,7 @@ export default function PromoBanners({
         e.preventDefault();
 
         router.get(
-            route("admin.promo-banners.index"),
+            pageRoute("admin.promo-banners.index"),
             keyword ? { q: keyword } : {},
             {
                 preserveState: true,
@@ -292,7 +294,7 @@ export default function PromoBanners({
     const resetSearch = () => {
         setKeyword("");
         router.get(
-            route("admin.promo-banners.index"),
+            pageRoute("admin.promo-banners.index"),
             {},
             {
                 preserveState: true,
@@ -305,7 +307,7 @@ export default function PromoBanners({
     const submitCreate = (e) => {
         e.preventDefault();
 
-        createForm.post(route("admin.promo-banners.store"), {
+        createForm.post(pageRoute("admin.promo-banners.store"), {
             preserveScroll: true,
             forceFormData: true,
             onSuccess: () => {
@@ -349,7 +351,7 @@ export default function PromoBanners({
                 ...data,
                 _method: "put",
             }))
-            .post(route("admin.promo-banners.update", editingId), {
+            .post(pageRoute("admin.promo-banners.update", editingId), {
             preserveScroll: true,
             forceFormData: true,
             onSuccess: () => {
@@ -367,7 +369,7 @@ export default function PromoBanners({
             return;
         }
 
-        router.delete(route("admin.promo-banners.destroy", item.id), {
+        router.delete(pageRoute("admin.promo-banners.destroy", item.id), {
             preserveScroll: true,
         });
     };
@@ -386,7 +388,7 @@ export default function PromoBanners({
                         </p>
                     </div>
                     <Link
-                        href={route("premium.admin.subscriptions")}
+                        href={pageRoute("premium.admin.subscriptions")}
                         className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                     >
                         Monitoring Premium

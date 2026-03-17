@@ -12,12 +12,20 @@ const Hero = ({ featuredArticle, categories = [] }) => {
     const featuredImage = featuredArticle?.image
         ? `/storage/${featuredArticle.image}`
         : "/images/default-news.jpg";
-    const featuredType = featuredArticle?.type
-        ? featuredArticle.type.replace(/_/g, " ")
-        : "Panduan Platform";
+    const typeLabelMap = {
+        story: "Fokus Utama - Analisis Mendalam",
+        news: "Berita - Update Terkini",
+        series: "Kilas Data - Insight Ringkas",
+        publikasi_riset: "Publikasi Riset",
+    };
+    const featuredType = typeLabelMap[featuredArticle?.type] || "Artikel Pilihan";
     const featuredTitle =
         featuredArticle?.title ||
         "Tutorial eksplorasi data, analisis, dan kajian strategis Brightnest Institute";
+    const featuredHref =
+        featuredArticle?.slug || featuredArticle?.id
+            ? route("surveys.show", featuredArticle.slug || featuredArticle.id)
+            : route("surveys.index");
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -84,11 +92,11 @@ const Hero = ({ featuredArticle, categories = [] }) => {
                                     value={keyword}
                                     onChange={(e) => setKeyword(e.target.value)}
                                     placeholder="Cari data di sini"
-                                    className="h-[52px] w-full rounded-xl border border-white/35 bg-slate-900/35 pl-12 pr-24 text-sm sm:text-base text-white placeholder:text-slate-300/90 backdrop-blur-sm focus:border-amber-300 focus:ring-4 focus:ring-amber-300/25 transition-all"
+                                    className="h-[52px] w-full rounded-xl border border-white/35 bg-slate-900/35 pl-12 pr-24 text-sm sm:text-base text-white placeholder:text-slate-300/90 backdrop-blur-sm focus:border-blue-300 focus:ring-4 focus:ring-blue-300/30 transition-all"
                                 />
                                 <button
                                     type="submit"
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-amber-400/25 px-4 py-1.5 text-sm font-bold text-white hover:bg-amber-400/40 transition-colors"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-bold text-white hover:bg-blue-700 transition-colors"
                                 >
                                     Cari
                                 </button>
@@ -122,11 +130,11 @@ const Hero = ({ featuredArticle, categories = [] }) => {
                     </div>
 
                     <div className="hidden lg:block hero-fade-up hero-delay-4">
-                        <div className="hero-float relative overflow-hidden rounded-2xl border border-amber-200/40 bg-slate-900/35 shadow-[0_30px_80px_-35px_rgba(15,23,42,1)] backdrop-blur-md">
+                        <div className="hero-float relative overflow-hidden rounded-2xl border border-blue-200/35 bg-slate-900/35 shadow-[0_30px_80px_-35px_rgba(15,23,42,1)] backdrop-blur-md">
                             <img
                                 src={featuredImage}
                                 alt={featuredTitle}
-                                className="h-[320px] w-full object-cover"
+                                className="h-[336px] w-full object-cover"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
                             <div className="absolute bottom-0 left-0 right-0 p-5">
@@ -136,10 +144,13 @@ const Hero = ({ featuredArticle, categories = [] }) => {
                                 <h3 className="text-2xl font-extrabold text-white leading-tight mb-3 line-clamp-2">
                                     {featuredTitle}
                                 </h3>
-                                <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold text-white">
+                                <Link
+                                    href={featuredHref}
+                                    className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-white/20"
+                                >
                                     <PlayCircle className="h-4 w-4" />
-                                    Lihat Highlight
-                                </div>
+                                    Lihat Artikel
+                                </Link>
                             </div>
                         </div>
                     </div>

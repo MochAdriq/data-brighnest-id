@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Head, Link, usePage } from "@inertiajs/react";
 import PublicLayout from "@/Layouts/PublicLayout";
 import StatsSection from "@/Components/sections/StatsSection";
@@ -35,60 +35,110 @@ export default function Welcome({
         }));
     };
 
+    useEffect(() => {
+        const elements = Array.from(
+            document.querySelectorAll("[data-scroll-reveal]"),
+        );
+
+        if (elements.length === 0) {
+            return undefined;
+        }
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add("is-visible");
+                        observer.unobserve(entry.target);
+                    }
+                });
+            },
+            {
+                threshold: 0.16,
+                rootMargin: "0px 0px -8% 0px",
+            },
+        );
+
+        elements.forEach((element, idx) => {
+            element.style.setProperty(
+                "--reveal-delay",
+                `${Math.min(idx * 80, 320)}ms`,
+            );
+            observer.observe(element);
+        });
+
+        return () => {
+            observer.disconnect();
+        };
+    }, []);
+
     return (
         <PublicLayout heroData={heroData}>
             <Head title="Brightnest Institute - Pusat Data Daerah" />
 
             <div className="min-h-screen bg-white font-sans">
                 {/* 1. HOOKS: KENAPA BRIGHTNEST? */}
-                <StatsSection />
+                <div className="scroll-reveal" data-scroll-reveal>
+                    <StatsSection />
+                </div>
 
                 {/* 2. PRODUK: KILAS DATA (Highlight Utama) */}
-                <ProductSlider
-                    title="Kilas Data"
-                    subtitle="Indikator strategis daerah dalam format grafik visual."
-                    data={formatData(kilasData)} // <--- GUNAKAN formatData DI SINI
-                    linkUrl={route("kilas-data")}
-                    linkText="Buka Dashboard Data"
-                    bgColor="bg-slate-50"
-                    icon={<TrendingUp className="w-6 h-6" />}
-                />
+                <div className="scroll-reveal" data-scroll-reveal>
+                    <ProductSlider
+                        title="Kilas Data"
+                        subtitle="Indikator strategis daerah dalam format grafik visual."
+                        data={formatData(kilasData)} // <--- GUNAKAN formatData DI SINI
+                        linkUrl={route("kilas-data")}
+                        linkText="Buka Dashboard Data"
+                        bgColor="bg-slate-50"
+                        icon={<TrendingUp className="w-6 h-6" />}
+                    />
+                </div>
 
                 {/* 3. PRODUK: FOKUS UTAMA (Artikel Mendalam) */}
-                <ProductSlider
-                    title="Fokus Utama"
-                    subtitle="Analisis mendalam dan cerita di balik angka."
-                    data={formatData(fokusUtama)} // <--- GUNAKAN formatData DI SINI
-                    linkUrl={route("fokus-utama")}
-                    linkText="Baca Analisis Lainnya"
-                    bgColor="bg-white"
-                    icon={<FileText className="w-6 h-6" />}
-                />
+                <div className="scroll-reveal" data-scroll-reveal>
+                    <ProductSlider
+                        title="Fokus Utama"
+                        subtitle="Analisis mendalam dan cerita di balik angka."
+                        data={formatData(fokusUtama)} // <--- GUNAKAN formatData DI SINI
+                        linkUrl={route("fokus-utama")}
+                        linkText="Baca Analisis Lainnya"
+                        bgColor="bg-white"
+                        icon={<FileText className="w-6 h-6" />}
+                    />
+                </div>
 
                 {/* 4. PRODUK: BERITA */}
-                <ProductSlider
-                    title="Berita"
-                    subtitle="Isu terkini dan perkembangan kebijakan publik."
-                    data={formatData(kabarTepi)} // <--- GUNAKAN formatData DI SINI
-                    linkUrl={route("berita")}
-                    linkText="Lihat Semua Berita"
-                    bgColor="bg-slate-50"
-                    icon={<Newspaper className="w-6 h-6" />}
-                />
+                <div className="scroll-reveal" data-scroll-reveal>
+                    <ProductSlider
+                        title="Berita"
+                        subtitle="Isu terkini dan perkembangan kebijakan publik."
+                        data={formatData(kabarTepi)} // <--- GUNAKAN formatData DI SINI
+                        linkUrl={route("berita")}
+                        linkText="Lihat Semua Berita"
+                        bgColor="bg-slate-50"
+                        icon={<Newspaper className="w-6 h-6" />}
+                    />
+                </div>
 
-                <ProductSlider
-                    title="Publikasi Riset"
-                    subtitle="Rilis riset, ringkasan temuan, dan dokumen publikasi terbaru."
-                    data={formatData(publikasiRiset)}
-                    linkUrl={route("surveys.index", { type: "publikasi_riset" })}
-                    linkText="Lihat Semua Publikasi"
-                    bgColor="bg-white"
-                    icon={<BadgeCheck className="w-6 h-6" />}
-                    keepPublicationPremiumImageVisible
-                />
+                <div className="scroll-reveal" data-scroll-reveal>
+                    <ProductSlider
+                        title="Publikasi Riset"
+                        subtitle="Rilis riset, ringkasan temuan, dan dokumen publikasi terbaru."
+                        data={formatData(publikasiRiset)}
+                        linkUrl={route("surveys.index", { type: "publikasi_riset" })}
+                        linkText="Lihat Semua Publikasi"
+                        bgColor="bg-white"
+                        icon={<BadgeCheck className="w-6 h-6" />}
+                        keepPublicationPremiumImageVisible
+                    />
+                </div>
 
                 {/* 5. CTA: PENUTUP */}
-                <div className="py-16 sm:py-20 lg:py-24 bg-[#0B1120] text-center relative overflow-hidden">
+                <div
+                    className="scroll-reveal py-16 sm:py-20 lg:py-24 bg-[#0B1120] text-center relative overflow-hidden"
+                    data-scroll-reveal
+                >
                     {/* Dekorasi Blur */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[360px] h-[360px] sm:w-[500px] sm:h-[500px] lg:w-[600px] lg:h-[600px] bg-blue-600/20 rounded-full blur-[80px] sm:blur-[100px] pointer-events-none"></div>
 
@@ -107,7 +157,10 @@ export default function Welcome({
                     </div>
                 </div>
 
-                <div className="py-14 sm:py-16 lg:py-20 bg-white border-t border-slate-100">
+                <div
+                    className="scroll-reveal py-14 sm:py-16 lg:py-20 bg-white border-t border-slate-100"
+                    data-scroll-reveal
+                >
                     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="text-center mb-10">
                             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold uppercase tracking-wider mb-3">

@@ -108,6 +108,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/admin/promo-banners/store', [PromoBannerController::class, 'store'])->name('admin.promo-banners.store');
     // Backward-compatible endpoint lama.
     Route::post('/admin/promo-banners', [PromoBannerController::class, 'store'])->name('admin.promo-banners.store.legacy');
+    // Backward-compatible endpoint update via POST untuk shared hosting yang ketat terhadap method override.
+    Route::post('/admin/promo-banners/{promoBanner}/update', [PromoBannerController::class, 'update'])->name('admin.promo-banners.update.post');
     Route::put('/admin/promo-banners/{promoBanner}', [PromoBannerController::class, 'update'])->name('admin.promo-banners.update');
     Route::delete('/admin/promo-banners/{promoBanner}', [PromoBannerController::class, 'destroy'])->name('admin.promo-banners.destroy');
 });

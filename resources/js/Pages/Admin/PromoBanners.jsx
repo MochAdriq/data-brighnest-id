@@ -344,18 +344,18 @@ export default function PromoBanners({
 
     const submitEdit = (e) => {
         e.preventDefault();
-        if (!editingId) return;
+        if (!editingId || editForm.processing) return;
 
-        editForm
-            .transform((data) => ({
-                ...data,
-                _method: "put",
-            }))
-            .post(pageRoute("admin.promo-banners.update", editingId), {
+        editForm.post(pageRoute("admin.promo-banners.update.post", editingId), {
             preserveScroll: true,
             forceFormData: true,
             onSuccess: () => {
                 cancelEdit();
+            },
+            onError: () => {
+                window.alert(
+                    "Update banner gagal. Cek kembali data form yang wajib dan format URL CTA.",
+                );
             },
         });
     };

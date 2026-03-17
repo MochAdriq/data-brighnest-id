@@ -2,6 +2,7 @@ import ApplicationLogo from '@/Components/ApplicationLogo';
 import Dropdown from '@/Components/Dropdown';
 import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
+import GlobalPromoPopup from '@/Components/ui/GlobalPromoPopup';
 import { Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -63,6 +64,14 @@ export default function AuthenticatedLayout({ header, children }) {
                                     active={route().current('admin.user-roles.*')}
                                 >
                                     Role User
+                                </NavLink>
+                            )}
+                            {isSuperAdmin && (
+                                <NavLink
+                                    href={route('admin.promo-banners.index')}
+                                    active={route().current('admin.promo-banners.*')}
+                                >
+                                    Popup Banner
                                 </NavLink>
                             )}
                         </div>
@@ -197,6 +206,14 @@ export default function AuthenticatedLayout({ header, children }) {
                                     Role User
                                 </ResponsiveNavLink>
                             )}
+                            {isSuperAdmin && (
+                                <ResponsiveNavLink
+                                    href={route('admin.promo-banners.index')}
+                                    active={route().current('admin.promo-banners.*')}
+                                >
+                                    Popup Banner
+                                </ResponsiveNavLink>
+                            )}
                         </div>
                     )}
 
@@ -250,6 +267,7 @@ export default function AuthenticatedLayout({ header, children }) {
                 </div>
             )}
 
+            <GlobalPromoPopup />
             <main>{children}</main>
         </div>
     );

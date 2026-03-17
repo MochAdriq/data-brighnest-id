@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PremiumController;
+use App\Http\Controllers\PromoBannerController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SurveyController; 
 use App\Http\Controllers\XenditWebhookController;
@@ -101,6 +102,12 @@ Route::middleware('auth')->group(function () {
     // 7. Manajemen Role User (Super Admin)
     Route::get('/admin/user-roles', [UserRoleController::class, 'index'])->name('admin.user-roles.index')->middleware('role:super_admin');
     Route::put('/admin/user-roles/{user}', [UserRoleController::class, 'update'])->name('admin.user-roles.update')->middleware('role:super_admin');
+
+    // 8. Banner Popup Promosi (Super Admin)
+    Route::get('/admin/promo-banners', [PromoBannerController::class, 'index'])->name('admin.promo-banners.index')->middleware('role:super_admin');
+    Route::post('/admin/promo-banners', [PromoBannerController::class, 'store'])->name('admin.promo-banners.store')->middleware('role:super_admin');
+    Route::put('/admin/promo-banners/{promoBanner}', [PromoBannerController::class, 'update'])->name('admin.promo-banners.update')->middleware('role:super_admin');
+    Route::delete('/admin/promo-banners/{promoBanner}', [PromoBannerController::class, 'destroy'])->name('admin.promo-banners.destroy')->middleware('role:super_admin');
 });
 
 // Route Public (Bisa diakses tanpa login)

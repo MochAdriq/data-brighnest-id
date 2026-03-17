@@ -3,6 +3,7 @@ import Navbar from "@/Components/sections/Navbar";
 import Footer from "@/Components/sections/Footer";
 import Hero from "@/Components/sections/Hero";
 import FloatingContactButtons from "@/Components/ui/FloatingContactButtons";
+import GlobalPromoPopup from "@/Components/ui/GlobalPromoPopup";
 import { Head, Link, usePage } from "@inertiajs/react";
 import { Home, ChevronRight } from "lucide-react";
 
@@ -118,6 +119,7 @@ export default function PublicLayout({
             {renderBreadcrumb()}
 
             <main className="flex-grow">{children}</main>
+            <GlobalPromoPopup />
             <FloatingContactButtons />
             <Footer />
         </div>

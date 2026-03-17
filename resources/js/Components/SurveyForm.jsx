@@ -48,7 +48,7 @@ const POST_TYPES = [
     },
     {
         id: "news",
-        label: "Kabar Tepi",
+        label: "Berita",
         desc: "Berita ringkas. Wajib gambar utama.",
     },
     {

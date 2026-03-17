@@ -69,7 +69,7 @@ class DatabaseSeeder extends Seeder
             'title' => fn() => 'Analisis ' . fake()->sentence(4), // Judulnya berbau analisis
         ]);
 
-        // 4. Buat 8 "Kabar Tepi" (News)
+        // 4. Buat 8 "Berita" (News)
         Survey::factory(8)->create([
             'type' => 'news',
             'title' => fn() => 'Berita: ' . fake()->sentence(5),

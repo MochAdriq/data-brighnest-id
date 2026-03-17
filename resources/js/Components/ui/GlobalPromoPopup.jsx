@@ -3,8 +3,35 @@ import { X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 const INTERNAL_ROLES = ["super_admin", "publisher", "editor"];
+const GUEST_STORAGE_KEY = "brightnest_popup_guest_last_seen";
+const MEMBER_STORAGE_PREFIX = "brightnest_popup_member";
+
+const toLocalDateStamp = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+};
 
 const isExternalUrl = (url) => /^https?:\/\//i.test(String(url || "").trim());
+
+const readStoredDate = (key) => {
+    try {
+        return window.localStorage.getItem(key);
+    } catch {
+        return null;
+    }
+};
+
+const writeStoredDate = (key, value) => {
+    try {
+        window.localStorage.setItem(key, value);
+    } catch {
+        // Ignore localStorage write failures (private mode / strict policy).
+    }
+};
 
 function ActionButton({ href, label, className = "", onClick = null }) {
     if (!href) {
@@ -78,6 +105,18 @@ export default function GlobalPromoPopup() {
         return null;
     }, [guestConfig, memberBanner, shouldShowGuest, shouldShowMember]);
 
+    const storageKey = useMemo(() => {
+        if (!popupPayload) {
+            return null;
+        }
+
+        if (popupPayload.mode === "guest") {
+            return GUEST_STORAGE_KEY;
+        }
+
+        return `${MEMBER_STORAGE_PREFIX}_${authUser?.id}_last_seen`;
+    }, [authUser?.id, popupPayload]);
+
     const delayMs = Number(popupConfig?.delay_ms || 4000);
     const closeUnlockMs = Number(popupConfig?.close_unlock_ms || 3000);
 
@@ -94,19 +133,27 @@ export default function GlobalPromoPopup() {
     };
 
     useEffect(() => {
-        if (!popupPayload) {
+        if (!popupPayload || !storageKey) {
+            setIsOpen(false);
+            return;
+        }
+
+        const currentDay = toLocalDateStamp();
+        const seenDay = readStoredDate(storageKey);
+        if (seenDay === currentDay) {
             setIsOpen(false);
             return;
         }
 
         const timer = window.setTimeout(() => {
             setIsOpen(true);
+            writeStoredDate(storageKey, currentDay);
         }, delayMs);
 
         return () => {
             window.clearTimeout(timer);
         };
-    }, [delayMs, popupPayload]);
+    }, [delayMs, popupPayload, storageKey]);
 
     useEffect(() => {
         if (!isOpen) {

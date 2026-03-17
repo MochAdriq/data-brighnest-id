@@ -5,7 +5,7 @@ import { Clock3, Eye, Flame } from "lucide-react";
 const typeNames = {
     series: "Kilas Data",
     story: "Fokus Utama",
-    news: "Kabar Tepi",
+    news: "Berita",
 };
 
 const toneClassMap = {

@@ -599,7 +599,7 @@ class SurveyController extends Controller
     }
 
     /**
-     * Menampilkan produk lain (Fokus Utama / Kabar Tepi).
+     * Menampilkan produk lain (Fokus Utama / Berita).
      */
     public function produk($type, Request $request)
     {
@@ -640,7 +640,7 @@ class SurveyController extends Controller
                 ->paginate(9)
                 ->withQueryString(),
             'filters' => ['q' => $q, 'category' => $category, 'sort' => $sort, 'type' => $type],
-            'title'   => ($type === 'story') ? 'Fokus Utama' : 'Kabar Tepi'
+            'title'   => ($type === 'story') ? 'Fokus Utama' : 'Berita'
         ]);
     }
 
@@ -711,7 +711,7 @@ class SurveyController extends Controller
             'file.file'            => 'File Kilas Data tidak valid.',
             'file.mimes'           => 'Format file harus Excel (.xlsx, .xls) atau CSV!',
             'file.max'             => 'Ukuran file Kilas Data maksimal 10MB.',
-            'image_file.required_unless' => 'Fokus Utama/Kabar Tepi wajib upload gambar utama.',
+            'image_file.required_unless' => 'Fokus Utama/Berita wajib upload gambar utama.',
             'image_file.uploaded'  => 'Upload gambar utama gagal. Cek batas upload server lalu coba lagi.',
             'image_file.image'     => 'File gambar tidak valid.',
             'image_file.mimes'     => 'Format gambar harus jpeg/png/jpg/webp.',
@@ -822,7 +822,7 @@ class SurveyController extends Controller
         $hasImage = !empty($survey->image) || $request->hasFile('image_file');
         if (!$hasImage) {
             throw ValidationException::withMessages([
-                'image_file' => 'Fokus Utama/Kabar Tepi membutuhkan gambar utama. Upload gambar baru karena gambar lama belum tersedia.',
+                'image_file' => 'Fokus Utama/Berita membutuhkan gambar utama. Upload gambar baru karena gambar lama belum tersedia.',
             ]);
         }
     }

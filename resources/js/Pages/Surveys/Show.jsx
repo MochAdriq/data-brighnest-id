@@ -22,7 +22,7 @@ export default function Show({
     const typeLabel = {
         series: { label: "Kilas Data", url: route("kilas-data") },
         story: { label: "Fokus Utama", url: route("fokus-utama") },
-        news: { label: "Kabar Tepi", url: route("kabar-tepi") },
+    news: { label: "Berita", url: route("berita") },
         publikasi_riset: {
             label: "Publikasi Riset",
             url: route("surveys.index", { type: "publikasi_riset" }),

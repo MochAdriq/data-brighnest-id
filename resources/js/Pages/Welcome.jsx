@@ -65,12 +65,12 @@ export default function Welcome({
                     icon={<FileText className="w-6 h-6" />}
                 />
 
-                {/* 4. PRODUK: KABAR TEPI (Berita Ringan) */}
+                {/* 4. PRODUK: BERITA */}
                 <ProductSlider
-                    title="Kabar Tepi"
+                    title="Berita"
                     subtitle="Isu terkini dan perkembangan kebijakan publik."
                     data={formatData(kabarTepi)} // <--- GUNAKAN formatData DI SINI
-                    linkUrl={route("kabar-tepi")}
+                    linkUrl={route("berita")}
                     linkText="Lihat Semua Berita"
                     bgColor="bg-slate-50"
                     icon={<Newspaper className="w-6 h-6" />}

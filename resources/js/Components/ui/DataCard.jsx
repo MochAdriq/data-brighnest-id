@@ -42,7 +42,7 @@ const DataCard = ({ item, keepImageVisibleOnPremium = false }) => {
                 };
             case "news":
                 return {
-                    label: "Kabar Tepi",
+        label: "Berita",
                     color: "bg-green-100 text-green-700 border-green-200",
                 };
             case "publikasi_riset":

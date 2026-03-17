@@ -109,7 +109,7 @@ export default function Index({ surveys, filters, title }) {
                                     <option value="">Semua Tipe</option>
                                     <option value="series">Kilas Data</option>
                                     <option value="story">Fokus Utama</option>
-                                    <option value="news">Kabar Tepi</option>
+                                            <option value="news">Berita</option>
                                     <option value="publikasi_riset">Publikasi Riset</option>
                                 </select>
                                 <select

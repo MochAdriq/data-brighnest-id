@@ -159,11 +159,11 @@ const Navbar = ({ user, categories = [] }) => {
                         Fokus Utama
                     </Link>
                     <Link
-                        href={route("kabar-tepi")}
+                        href={route("berita")}
                         className="block rounded-lg px-3 py-2 text-base font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600"
                         onClick={closeMobileDrawer}
                     >
-                        Kabar Tepi
+                        Berita
                     </Link>
                     <Link
                         href={route("surveys.index", { type: "publikasi_riset" })}
@@ -306,8 +306,8 @@ const Navbar = ({ user, categories = [] }) => {
                         <Link href={route("fokus-utama")} className="text-sm font-semibold text-gray-600 hover:text-blue-600 transition-colors">
                             Fokus Utama
                         </Link>
-                        <Link href={route("kabar-tepi")} className="text-sm font-semibold text-gray-600 hover:text-blue-600 transition-colors">
-                            Kabar Tepi
+                        <Link href={route("berita")} className="text-sm font-semibold text-gray-600 hover:text-blue-600 transition-colors">
+                            Berita
                         </Link>
                         <Link
                             href={route("surveys.index", { type: "publikasi_riset" })}

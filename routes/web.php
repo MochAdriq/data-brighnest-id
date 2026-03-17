@@ -123,6 +123,8 @@ Route::get('/category/{slug}', function ($slug, Request $request) {
 
 Route::get('/kilas-data', [SurveyController::class, 'kilasData'])->name('kilas-data');
 Route::get('/fokus-utama', function(Request $request) { return app(SurveyController::class)->produk('story', $request); })->name('fokus-utama');
+Route::get('/berita', function(Request $request) { return app(SurveyController::class)->produk('news', $request); })->name('berita');
+// Backward-compatible alias URL lama.
 Route::get('/kabar-tepi', function(Request $request) { return app(SurveyController::class)->produk('news', $request); })->name('kabar-tepi');
 
 Route::post('/webhooks/xendit/payment-request', [XenditWebhookController::class, 'paymentRequestStatus'])

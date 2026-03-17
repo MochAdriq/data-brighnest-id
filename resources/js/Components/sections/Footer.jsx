@@ -85,10 +85,10 @@ export default function Footer() {
                             </li>
                             <li>
                                 <Link
-                                    href={route("kabar-tepi")}
+                                    href={route("berita")}
                                     className="hover:text-blue-400 transition-colors"
                                 >
-                                    Kabar Tepi
+                                    Berita
                                 </Link>
                             </li>
                         </ul>

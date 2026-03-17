@@ -40,7 +40,12 @@ const Hero = ({ featuredArticle, categories = [] }) => {
                 <div className="grid grid-cols-1 lg:grid-cols-[1.06fr_0.94fr] items-center gap-8 lg:gap-12">
                     <div className="text-left">
                         <div className="mb-5 sm:mb-6">
-                            <h1 className="hero-fade-up hero-delay-1 hero-title-wrap text-3xl sm:text-4xl md:text-5xl lg:text-[56px] font-extrabold leading-tight tracking-tight mb-2">
+                            <p className="hero-fade-up hero-delay-1 mb-2">
+                                <span className="hero-welcome-idle inline-flex items-center rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-sm font-semibold tracking-[0.12em] text-white sm:text-base">
+                                    Welcome
+                                </span>
+                            </p>
+                            <h1 className="hero-fade-up hero-delay-2 hero-title-wrap text-3xl sm:text-4xl md:text-5xl lg:text-[56px] font-extrabold leading-tight tracking-tight mb-2">
                                 <span className="hero-title-solid">
                                     Brightnest Institute
                                 </span>
@@ -51,9 +56,6 @@ const Hero = ({ featuredArticle, categories = [] }) => {
                                     Brightnest Institute
                                 </span>
                             </h1>
-                            <h2 className="hero-fade-up hero-delay-2 text-lg sm:text-xl md:text-2xl font-semibold text-slate-100">
-                                Welcome to Brightnest Institute
-                            </h2>
                         </div>
 
                         <p className="hero-fade-up hero-delay-3 text-sm sm:text-base md:text-lg text-slate-200/90 mb-7 sm:mb-8 max-w-2xl leading-relaxed">
@@ -86,7 +88,7 @@ const Hero = ({ featuredArticle, categories = [] }) => {
                                 />
                                 <button
                                     type="submit"
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-blue-500/25 px-4 py-1.5 text-sm font-bold text-white hover:bg-blue-500/40 transition-colors"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-amber-400/25 px-4 py-1.5 text-sm font-bold text-white hover:bg-amber-400/40 transition-colors"
                                 >
                                     Cari
                                 </button>

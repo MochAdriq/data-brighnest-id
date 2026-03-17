@@ -13,7 +13,7 @@ const formatRupiah = (value) =>
 const typeLabels = {
     series: "Kilas Data",
     story: "Fokus Utama",
-    news: "Kabar Tepi",
+    news: "Berita",
     publikasi_riset: "Publikasi Riset",
 };
 

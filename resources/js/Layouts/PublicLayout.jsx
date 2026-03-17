@@ -27,7 +27,8 @@ export default function PublicLayout({
         const labels = {
             "kilas-data": "Kilas Data",
             "fokus-utama": "Fokus Utama",
-            "kabar-tepi": "Kabar Tepi",
+            berita: "Berita",
+            "kabar-tepi": "Berita",
             search: "Pencarian",
             category: "Topik",
             login: "Masuk",

@@ -44,7 +44,7 @@ export default function RoleWorkspaceLayout({
                     <div className="px-2 pt-4 pb-4 border-b border-slate-100">
                         <Link href="/" className="inline-flex items-center gap-2">
                             <ApplicationLogo className="block h-8 w-auto fill-current text-slate-800" />
-                            <span className="text-sm font-bold text-slate-800">Brightnest</span>
+                            <span className="text-sm font-bold text-slate-800">Brightnest Institute</span>
                         </Link>
                     </div>
 

@@ -120,8 +120,8 @@ const Navbar = ({ user, categories = [] }) => {
                                 e.target.style.display = "none";
                             }}
                         />
-                        <span className="text-xl font-extrabold tracking-tight text-blue-600">
-                            Data Brightnest
+                        <span className="text-xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 via-blue-600 to-fuchsia-500">
+                            Brightnest Institute
                         </span>
                     </Link>
                     <button
@@ -285,8 +285,8 @@ const Navbar = ({ user, categories = [] }) => {
                                 e.target.style.display = "none";
                             }}
                         />
-                        <span className="hidden md:inline text-xl font-extrabold tracking-tight leading-none text-blue-600">
-                            Data Brightnest
+                        <span className="hidden md:inline text-xl font-extrabold tracking-tight leading-none text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 via-blue-600 to-fuchsia-500">
+                            Brightnest Institute
                         </span>
                     </Link>
 

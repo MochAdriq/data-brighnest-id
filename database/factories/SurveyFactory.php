@@ -40,7 +40,7 @@ class SurveyFactory extends Factory
             
             'content' => '<p>' . implode('</p><p>', $this->faker->paragraphs(8)) . '</p>', // Artikel panjang dummy
             'period' => '2024-2025',
-            'pic' => 'Tim Data Brightnest',
+            'pic' => 'Tim Brightnest Institute',
             'is_premium' => $isPremium, // 50% kemungkinan Premium
             'premium_tier' => null,
             'views' => $this->faker->numberBetween(100, 10000), // Views acak biar kelihatan rame

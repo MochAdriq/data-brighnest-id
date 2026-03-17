@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $subjectLine ?? config('app.name', 'Brightnest') }}</title>
+    <title>{{ $subjectLine ?? config('app.name', 'Brightnest Institute') }}</title>
 </head>
 @php
-    $brandName = config('app.name', 'Brightnest');
+    $brandName = config('app.name', 'Brightnest Institute');
     $appUrl = rtrim((string) config('app.url', ''), '/');
     $logoUrl = $appUrl !== '' ? $appUrl.'/images/brightnest_company.png' : '';
     $logoAbsolutePath = public_path('images/brightnest_company.png');

@@ -80,7 +80,7 @@ export default function Login({ status, canResetPassword }) {
             <div className="mb-5">
                 <h1 className="text-2xl font-extrabold text-white">Masuk Akun</h1>
                 <p className="mt-1 text-sm text-slate-300">
-                    Lanjutkan akses ke dashboard Brightnest.
+                    Lanjutkan akses ke dashboard Brightnest Institute.
                 </p>
             </div>
 

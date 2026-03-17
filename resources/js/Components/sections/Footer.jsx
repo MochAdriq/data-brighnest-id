@@ -18,7 +18,7 @@ export default function Footer() {
                     {/* 1. BRANDING */}
                     <div className="col-span-1 md:col-span-1">
                         <h2 className="text-2xl font-extrabold text-white mb-4 tracking-tight">
-                            Data Brightnest
+                            Brightnest Institute
                             <span className="text-blue-500">.</span>
                         </h2>
                         <p className="text-sm leading-relaxed mb-6">
@@ -162,7 +162,7 @@ export default function Footer() {
                 {/* COPYRIGHT */}
                 <div className="pt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center text-xs">
                     <p>
-                        &copy; {new Date().getFullYear()} Data Brightnest id.
+                        &copy; {new Date().getFullYear()} Brightnest Institute.
                         All rights reserved.
                     </p>
                     <div className="flex space-x-6 mt-4 md:mt-0">

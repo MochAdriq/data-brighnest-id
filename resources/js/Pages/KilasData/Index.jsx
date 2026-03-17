@@ -451,7 +451,7 @@ export default function KilasDataIndex({
                                         <span>
                                             Sumber:{" "}
                                             {selectedData.pic ||
-                                                "BrightNest Data"}
+                                                "Brightnest Institute"}
                                         </span>
                                     </div>
                                 </div>
@@ -467,7 +467,7 @@ export default function KilasDataIndex({
                                                     <Lock className="w-4 h-4 text-white" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-xs uppercase tracking-wide text-white/80">Akses Premium Brightnest</p>
+                                                    <p className="text-xs uppercase tracking-wide text-white/80">Akses Premium Brightnest Institute</p>
                                                     <p className="text-sm font-bold text-white">Akses data ini sedang terkunci</p>
                                                 </div>
                                             </div>
@@ -482,7 +482,7 @@ export default function KilasDataIndex({
                                                     </p>
                                                     <p className="mt-2 text-sm text-slate-700">
                                                         Konten ini termasuk kategori spesial.
-                                                        Silakan hubungi admin Brightnest melalui
+                                                        Silakan hubungi admin Brightnest Institute melalui
                                                         WhatsApp untuk akses lanjutan.
                                                     </p>
                                                     <a

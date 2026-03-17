@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Data Brightnest'),
+    'name' => env('APP_NAME', 'Brightnest Institute'),
     // mengubahinikk
 
     /*

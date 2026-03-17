@@ -58,7 +58,7 @@ export default function StatsSection() {
                     <div className="w-full lg:w-1/2 lg:pr-12 mb-12 lg:mb-0">
                         <div className="text-center mb-10">
                             <h2 className="text-3xl font-extrabold text-gray-900 mb-2">
-                                Kenapa Pilih Data BrightNest?
+                                Kenapa Pilih Brightnest Institute?
                             </h2>
                             <p className="text-gray-500 font-medium">
                                 Solusi Data Satu Pintu Sukabumi
@@ -94,7 +94,7 @@ export default function StatsSection() {
                     <div className="w-full lg:w-1/2 lg:pl-12 flex flex-col justify-center">
                         <div className="text-center mb-10">
                             <h2 className="text-3xl font-extrabold text-gray-900">
-                                Fakta Data BrightNest
+                                Fakta Brightnest Institute
                             </h2>
                         </div>
 

@@ -1,0 +1,58 @@
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1920" y2="1080" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#05163A"/>
+      <stop offset="0.48" stop-color="#0A2B6D"/>
+      <stop offset="1" stop-color="#25094E"/>
+    </linearGradient>
+    <linearGradient id="lineBlue" x1="280" y1="80" x2="1650" y2="640" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#52D8FF" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#2BA1FF" stop-opacity="0.05"/>
+    </linearGradient>
+    <linearGradient id="linePink" x1="980" y1="250" x2="1830" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF5CC8" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#7E2CFF" stop-opacity="0.08"/>
+    </linearGradient>
+    <radialGradient id="glowBlue" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(640 350) rotate(42) scale(760 420)">
+      <stop stop-color="#3BB8FF" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="#3BB8FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowPink" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1440 640) rotate(30) scale(580 380)">
+      <stop stop-color="#FF66CC" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#FF66CC" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softBlur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+  <rect width="1920" height="1080" fill="url(#glowBlue)"/>
+  <rect width="1920" height="1080" fill="url(#glowPink)"/>
+
+  <g opacity="0.8">
+    <path d="M-80 780L620 210L1220 290L1880 -70" stroke="url(#lineBlue)" stroke-width="5"/>
+    <path d="M120 840L760 260L1330 360L2020 -10" stroke="url(#lineBlue)" stroke-width="3"/>
+    <path d="M-120 920L570 310L1120 450L1860 130" stroke="url(#lineBlue)" stroke-width="2.5"/>
+    <path d="M440 980L980 510L1560 470L2060 220" stroke="url(#linePink)" stroke-width="6"/>
+    <path d="M300 1080L940 580L1560 610L2100 360" stroke="url(#linePink)" stroke-width="4"/>
+    <path d="M620 1080L1130 640L1640 700L2160 520" stroke="url(#linePink)" stroke-width="3"/>
+  </g>
+
+  <g stroke="#6CC5FF" stroke-opacity="0.2" stroke-width="1.4">
+    <path d="M860 120L1040 160L1240 260L1410 420L1480 620L1420 760L1240 850L980 810L770 690L730 510L790 320L860 120Z"/>
+    <path d="M760 210L940 250L1110 350L1230 510L1240 640L1140 740L960 760L810 690L720 550L700 390L760 210Z"/>
+  </g>
+
+  <g filter="url(#softBlur)" opacity="0.95">
+    <circle cx="760" cy="230" r="7" fill="#77D5FF"/>
+    <circle cx="930" cy="290" r="8" fill="#58B7FF"/>
+    <circle cx="1070" cy="360" r="6" fill="#95E6FF"/>
+    <circle cx="1240" cy="510" r="9" fill="#FF72CC"/>
+    <circle cx="1360" cy="610" r="8" fill="#FF5BB8"/>
+    <circle cx="980" cy="520" r="7" fill="#63CAFF"/>
+    <circle cx="1160" cy="620" r="6" fill="#E664FF"/>
+    <circle cx="1460" cy="700" r="9" fill="#FF86D7"/>
+    <circle cx="1580" cy="770" r="7" fill="#FF66C8"/>
+  </g>
+</svg>

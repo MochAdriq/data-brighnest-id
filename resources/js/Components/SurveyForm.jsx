@@ -920,7 +920,7 @@ export default function SurveyForm({ survey = null, existingAssets = null }) {
                                             value={data.image_copyright}
                                             onChange={(e) => setData("image_copyright", e.target.value)}
                                             className="w-full rounded-lg border-gray-300"
-                                            placeholder="Contoh: Foto: BrightNest / BPS"
+                                            placeholder="Contoh: Foto: Brightnest Institute / BPS"
                                         />
                                     </div>
                                 </section>

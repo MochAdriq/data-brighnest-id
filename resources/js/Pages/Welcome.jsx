@@ -37,7 +37,7 @@ export default function Welcome({
 
     return (
         <PublicLayout heroData={heroData}>
-            <Head title="Brightnest - Pusat Data Daerah" />
+            <Head title="Brightnest Institute - Pusat Data Daerah" />
 
             <div className="min-h-screen bg-white font-sans">
                 {/* 1. HOOKS: KENAPA BRIGHTNEST? */}
@@ -115,7 +115,7 @@ export default function Welcome({
                                 Premium Access
                             </div>
                             <h3 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 mb-3">
-                                Cara Berlangganan Premium Brightnest
+                                Cara Berlangganan Premium Brightnest Institute
                             </h3>
                             <p className="text-slate-600 max-w-3xl mx-auto">
                                 Akses penuh artikel premium, analisis lanjutan,

@@ -3,7 +3,7 @@ export default function ApplicationLogo({ className = "", ...props }) {
         <img
             {...props}
             src="/images/brightnest_company.png"
-            alt="Brightnest"
+            alt="Brightnest Institute"
             className={className}
         />
     );

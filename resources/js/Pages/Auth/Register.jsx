@@ -80,7 +80,7 @@ export default function Register({ status }) {
             <div className="mb-5">
                 <h1 className="text-2xl font-extrabold text-white">Buat Akun Baru</h1>
                 <p className="mt-1 text-sm text-slate-300">
-                    Daftar untuk mulai akses ekosistem Brightnest.
+                    Daftar untuk mulai akses ekosistem Brightnest Institute.
                 </p>
             </div>
 

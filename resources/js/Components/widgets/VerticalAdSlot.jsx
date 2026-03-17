@@ -29,7 +29,7 @@ export default function VerticalAdSlot({
                 <div
                     className={`rounded-xl border border-slate-200 ${slotHeightClass} bg-gradient-to-b from-slate-50 to-white flex items-center justify-center text-xs text-slate-400 text-center px-3`}
                 >
-                    Ruang Iklan Brightnest
+                    Ruang Iklan Brightnest Institute
                 </div>
 
                 <a

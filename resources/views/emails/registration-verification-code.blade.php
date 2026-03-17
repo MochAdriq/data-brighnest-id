@@ -1,6 +1,6 @@
 @extends('emails.layouts.brightnest', [
-    'subjectLine' => 'Kode Verifikasi Akun Brightnest',
-    'preheader' => 'Kode verifikasi akun Brightnest Anda sudah siap dipakai.',
+    'subjectLine' => 'Kode Verifikasi Akun Brightnest Institute',
+    'preheader' => 'Kode verifikasi akun Brightnest Institute Anda sudah siap dipakai.',
 ])
 
 @section('content')
@@ -8,7 +8,7 @@
         Verifikasi akun Anda
     </h1>
     <p style="margin:0 0 16px 0; font-size:14px; color:#cbd5e1; line-height:1.6;">
-        Masukkan kode berikut di halaman verifikasi untuk mengaktifkan akun Brightnest Anda.
+        Masukkan kode berikut di halaman verifikasi untuk mengaktifkan akun Brightnest Institute Anda.
     </p>
 
     <div style="margin:0 0 16px 0; padding:16px; border:1px solid #1e3a8a; border-radius:12px; background:#0b1228; text-align:center;">

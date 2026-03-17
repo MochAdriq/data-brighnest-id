@@ -21,7 +21,7 @@ class RegistrationVerificationCodeMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Kode Verifikasi Akun Brightnest',
+            subject: 'Kode Verifikasi Akun Brightnest Institute',
         );
     }
 

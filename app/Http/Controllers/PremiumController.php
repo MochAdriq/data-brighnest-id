@@ -760,9 +760,9 @@ class PremiumController extends Controller
         string $failureUrl,
         string $cancelUrl,
     ): array {
-        $displayName = trim((string) config('app.name', 'Brightnest'));
+        $displayName = trim((string) config('app.name', 'Brightnest Institute'));
         if ($displayName === '') {
-            $displayName = 'Brightnest';
+            $displayName = 'Brightnest Institute';
         }
 
         return [

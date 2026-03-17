@@ -34,7 +34,7 @@ class AppServiceProvider extends ServiceProvider
             ], false));
 
             return (new MailMessage)
-                ->subject('Reset Password Brightnest')
+                ->subject('Reset Password Brightnest Institute')
                 ->view('emails.auth.reset-password', [
                     'resetUrl' => $resetUrl,
                     'expireMinutes' => $expireMinutes,
@@ -43,7 +43,7 @@ class AppServiceProvider extends ServiceProvider
 
         VerifyEmail::toMailUsing(function ($notifiable, string $verificationUrl) {
             return (new MailMessage)
-                ->subject('Verifikasi Email Brightnest')
+                ->subject('Verifikasi Email Brightnest Institute')
                 ->view('emails.auth.verify-email', [
                     'verificationUrl' => $verificationUrl,
                 ]);

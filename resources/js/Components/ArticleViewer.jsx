@@ -106,7 +106,7 @@ function PaywallPanel({ article, pricing = {}, compact = false }) {
                                 Kategori Spesial
                             </p>
                             <p className="text-sm font-bold text-white">
-                                Konten ini diakses via admin Brightnest
+                                Konten ini diakses via admin Brightnest Institute
                             </p>
                         </div>
                     </div>
@@ -156,7 +156,7 @@ function PaywallPanel({ article, pricing = {}, compact = false }) {
                         <Lock className="w-4 h-4 text-white" />
                     </div>
                     <div>
-                        <p className="text-xs uppercase tracking-wide text-white/80">Akses Premium Brightnest</p>
+                        <p className="text-xs uppercase tracking-wide text-white/80">Akses Premium Brightnest Institute</p>
                         <p className="text-sm font-bold text-white">Konten ini terkunci premium</p>
                     </div>
                 </div>

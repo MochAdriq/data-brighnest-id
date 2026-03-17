@@ -10,7 +10,7 @@ const whatsappMessage = encodeURIComponent(
     "Halo Brightnest Institute, saya ingin terhubung dengan customer service.",
 );
 const whatsappHref = `https://wa.me/${CONTACT_INFO.whatsappNumber}?text=${whatsappMessage}`;
-const emailHref = `mailto:${CONTACT_INFO.email}?subject=${encodeURIComponent("Customer Service Brightnest")}`;
+const emailHref = `mailto:${CONTACT_INFO.email}?subject=${encodeURIComponent("Customer Service Brightnest Institute")}`;
 
 function WhatsAppIcon(props) {
     return (

@@ -1,6 +1,6 @@
 @extends('emails.layouts.brightnest', [
-    'subjectLine' => 'Verifikasi Email Brightnest',
-    'preheader' => 'Konfirmasi alamat email Anda untuk mengamankan akun Brightnest.',
+    'subjectLine' => 'Verifikasi Email Brightnest Institute',
+    'preheader' => 'Konfirmasi alamat email Anda untuk mengamankan akun Brightnest Institute.',
 ])
 
 @section('content')

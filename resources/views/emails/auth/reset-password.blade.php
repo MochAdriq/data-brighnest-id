@@ -1,6 +1,6 @@
 @extends('emails.layouts.brightnest', [
-    'subjectLine' => 'Reset Password Brightnest',
-    'preheader' => 'Permintaan reset password akun Brightnest Anda.',
+    'subjectLine' => 'Reset Password Brightnest Institute',
+    'preheader' => 'Permintaan reset password akun Brightnest Institute Anda.',
 ])
 
 @section('content')

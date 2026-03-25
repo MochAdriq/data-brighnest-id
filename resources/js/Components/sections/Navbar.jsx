@@ -13,13 +13,37 @@ import { createPortal } from "react-dom";
 const Navbar = ({ user, categories = [] }) => {
     const { url } = usePage();
     const [isScrolled, setIsScrolled] = useState(false);
+    const [isDesktopNavVisible, setIsDesktopNavVisible] = useState(true);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isUserOpen, setIsUserOpen] = useState(false);
     const userRef = useRef(null);
+    const lastScrollYRef = useRef(0);
 
     useEffect(() => {
         const handleScroll = () => {
-            setIsScrolled(window.scrollY > 10);
+            const currentY = window.scrollY;
+            setIsScrolled(currentY > 10);
+
+            if (window.innerWidth < 1024) {
+                setIsDesktopNavVisible(true);
+                lastScrollYRef.current = currentY;
+                return;
+            }
+
+            const delta = currentY - lastScrollYRef.current;
+            if (Math.abs(delta) < 6) {
+                return;
+            }
+
+            if (currentY < 72) {
+                setIsDesktopNavVisible(true);
+            } else if (delta > 0) {
+                setIsDesktopNavVisible(false);
+            } else {
+                setIsDesktopNavVisible(true);
+            }
+
+            lastScrollYRef.current = currentY;
         };
 
         window.addEventListener("scroll", handleScroll);
@@ -48,12 +72,20 @@ const Navbar = ({ user, categories = [] }) => {
         const handleResize = () => {
             if (window.innerWidth >= 1024) {
                 setIsMobileMenuOpen(false);
+            } else {
+                setIsDesktopNavVisible(true);
             }
         };
 
         window.addEventListener("resize", handleResize);
         return () => window.removeEventListener("resize", handleResize);
     }, []);
+
+    useEffect(() => {
+        if (isMobileMenuOpen) {
+            setIsDesktopNavVisible(true);
+        }
+    }, [isMobileMenuOpen]);
 
     useEffect(() => {
         const handleKeyDown = (event) => {
@@ -261,7 +293,11 @@ const Navbar = ({ user, categories = [] }) => {
     return (
         <>
             <nav
-                className={`sticky top-0 z-[60] w-full border-b transition-all duration-200 ${
+                className={`sticky top-0 z-[60] w-full border-b transition-transform duration-300 ease-out ${
+                    isDesktopNavVisible
+                        ? "translate-y-0"
+                        : "translate-y-0 lg:-translate-y-full"
+                } ${
                     isScrolled
                         ? "border-gray-100 bg-white/95 shadow-sm backdrop-blur-md"
                         : "border-gray-100 bg-white/90 backdrop-blur-sm"

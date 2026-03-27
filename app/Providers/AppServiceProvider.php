@@ -2,9 +2,11 @@
 
 namespace App\Providers;
 
+use App\Support\OpenGraphMetaResolver;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
@@ -24,6 +26,18 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
+
+        View::composer('app', function ($view) {
+            $request = request();
+            if (!$request) {
+                return;
+            }
+
+            $view->with(
+                'openGraphMeta',
+                app(OpenGraphMetaResolver::class)->resolve($request),
+            );
+        });
 
         ResetPassword::toMailUsing(function ($notifiable, string $token) {
             $passwordBroker = (string) config('auth.defaults.passwords', 'users');

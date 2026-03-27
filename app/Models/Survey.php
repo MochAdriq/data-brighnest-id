@@ -26,6 +26,7 @@ class Survey extends Model
         'lead', 'content', 'period', 'pic', 'is_premium', 'premium_tier', 'tags',
         'csv_data', 'file_path', 'pdf_path', 'image', 'views', 'download_count',
         'image_caption', 'image_copyright',
+        'og_image_path', 'og_generated_at',
     ];
 
     protected $casts = [
@@ -36,6 +37,7 @@ class Survey extends Model
         'show_notes' => 'boolean',
         'published_year' => 'integer',
         'download_count' => 'integer',
+        'og_generated_at' => 'datetime',
     ];
 
     /**

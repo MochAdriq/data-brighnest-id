@@ -20,37 +20,48 @@ const Navbar = ({ user, categories = [] }) => {
     const lastScrollYRef = useRef(0);
 
     useEffect(() => {
-        const handleScroll = () => {
+        let ticking = false;
+
+        const updateNavbarState = () => {
             const currentY = window.scrollY;
+            const previousY = lastScrollYRef.current;
+            const delta = currentY - previousY;
+            const isDesktop = window.innerWidth >= 1024;
+
             setIsScrolled(currentY > 10);
 
-            if (window.innerWidth < 1024) {
+            if (!isDesktop || isMobileMenuOpen) {
                 setIsDesktopNavVisible(true);
-                lastScrollYRef.current = currentY;
-                return;
-            }
-
-            const delta = currentY - lastScrollYRef.current;
-            if (Math.abs(delta) < 6) {
-                return;
-            }
-
-            if (currentY < 72) {
+            } else if (currentY <= 72) {
                 setIsDesktopNavVisible(true);
-            } else if (delta > 0) {
+            } else if (delta > 6) {
                 setIsDesktopNavVisible(false);
-            } else {
+            } else if (delta < -6) {
                 setIsDesktopNavVisible(true);
             }
 
             lastScrollYRef.current = currentY;
+            ticking = false;
         };
 
-        window.addEventListener("scroll", handleScroll);
-        handleScroll();
+        const onScrollOrResize = () => {
+            if (ticking) {
+                return;
+            }
 
-        return () => window.removeEventListener("scroll", handleScroll);
-    }, []);
+            ticking = true;
+            window.requestAnimationFrame(updateNavbarState);
+        };
+
+        window.addEventListener("scroll", onScrollOrResize, { passive: true });
+        window.addEventListener("resize", onScrollOrResize);
+        updateNavbarState();
+
+        return () => {
+            window.removeEventListener("scroll", onScrollOrResize);
+            window.removeEventListener("resize", onScrollOrResize);
+        };
+    }, [isMobileMenuOpen]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -72,8 +83,6 @@ const Navbar = ({ user, categories = [] }) => {
         const handleResize = () => {
             if (window.innerWidth >= 1024) {
                 setIsMobileMenuOpen(false);
-            } else {
-                setIsDesktopNavVisible(true);
             }
         };
 
@@ -293,7 +302,7 @@ const Navbar = ({ user, categories = [] }) => {
     return (
         <>
             <nav
-                className={`sticky top-0 z-[60] w-full border-b transition-transform duration-300 ease-out ${
+                className={`fixed top-0 left-0 right-0 z-[60] w-full border-b transition-transform duration-300 ease-out ${
                     isDesktopNavVisible
                         ? "translate-y-0"
                         : "translate-y-0 lg:-translate-y-full"
@@ -482,6 +491,7 @@ const Navbar = ({ user, categories = [] }) => {
                     </div>
                 </div>
             </nav>
+            <div className="h-16 w-full" aria-hidden="true" />
 
             {isMobileMenuOpen && typeof window !== "undefined"
                 ? createPortal(mobileDrawer, document.body)

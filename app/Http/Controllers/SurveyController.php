@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Comment;
 use App\Models\Survey;
+use App\Services\OpenGraphImageService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -114,7 +115,7 @@ class SurveyController extends Controller
             }
 
             // 2. Simpan Data
-            Survey::create([
+            $survey = Survey::create([
                 'user_id'        => auth()->id(),
                 'type'           => $type,
                 'title'          => $this->normalizeString($request->title),
@@ -147,6 +148,7 @@ class SurveyController extends Controller
             ]);
 
             DB::commit();
+            $this->ensureOpenGraphImage($survey, onlyIfMissing: false);
             return redirect()->route('dashboard')->with('success', 'Data berhasil dipublikasikan!');
 
         } catch (ValidationException $e) {
@@ -387,6 +389,7 @@ class SurveyController extends Controller
             }
 
             $this->cleanupDetachedEditorMedia($oldContent, $survey->content);
+            $this->ensureOpenGraphImage($survey->fresh(), onlyIfMissing: true);
 
             return redirect()->route('dashboard')->with('success', 'Data berhasil diperbarui!');
         } catch (ValidationException $e) {
@@ -440,6 +443,7 @@ class SurveyController extends Controller
         if ($survey->pdf_path) {
             $this->deleteResearchPdf($survey->pdf_path);
         }
+        $this->deleteOpenGraphImage($survey);
         
         $survey->delete();
         return redirect()->back()->with('success', 'Data berhasil dihapus.');
@@ -1813,6 +1817,39 @@ class SurveyController extends Controller
             'image' => $existingImage,
             'pdf' => $existingPdf,
         ];
+    }
+
+    /**
+     * Sinkronisasi OG image untuk kebutuhan share preview.
+     */
+    private function ensureOpenGraphImage(Survey $survey, bool $onlyIfMissing): void
+    {
+        try {
+            /** @var OpenGraphImageService $ogImageService */
+            $ogImageService = app(OpenGraphImageService::class);
+
+            if ($onlyIfMissing && $ogImageService->hasValidOgImage($survey)) {
+                return;
+            }
+
+            $ogImageService->ensureForSurvey($survey, force: false);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
+    /**
+     * Hapus file OG ketika konten dihapus agar storage tetap bersih.
+     */
+    private function deleteOpenGraphImage(Survey $survey): void
+    {
+        try {
+            /** @var OpenGraphImageService $ogImageService */
+            $ogImageService = app(OpenGraphImageService::class);
+            $ogImageService->deleteForSurvey($survey);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     /**

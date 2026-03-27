@@ -7,9 +7,15 @@ import {
     BarChart3,
     Calendar,
     ArrowLeft,
+    Copy,
+    Facebook,
     Lock,
     Database,
     Gem,
+    Link2,
+    MessageCircle,
+    Send,
+    Share2,
     ShieldCheck,
     ShoppingBag,
     CreditCard,
@@ -72,6 +78,166 @@ const buildSpecialWaLink = (title, userName) => {
         messageParts.join(", ") + ".",
     )}`;
 };
+
+function KilasDataSharePanel({ selectedData }) {
+    const [isCopySuccess, setIsCopySuccess] = useState(false);
+    const [shareNotice, setShareNotice] = useState("");
+
+    if (!selectedData) {
+        return null;
+    }
+
+    const shareUrl =
+        typeof window !== "undefined" ? window.location.href : "";
+    const title = String(selectedData?.title || "Kilas Data").trim();
+    const teaser = String(
+        selectedData?.notes ||
+            selectedData?.content ||
+            "Lihat data terbaru dari Brightnest Institute.",
+    )
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    const shareText = `${title} - ${teaser}`;
+    const encodedUrl = encodeURIComponent(shareUrl);
+    const encodedText = encodeURIComponent(shareText);
+
+    const shareLinks = [
+        {
+            key: "wa",
+            label: "WhatsApp",
+            href: `https://wa.me/?text=${encodedText}%20${encodedUrl}`,
+            Icon: MessageCircle,
+            className:
+                "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
+        },
+        {
+            key: "fb",
+            label: "Facebook",
+            href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+            Icon: Facebook,
+            className:
+                "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100",
+        },
+        {
+            key: "x",
+            label: "X / Twitter",
+            href: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`,
+            Icon: Send,
+            className:
+                "border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200",
+        },
+        {
+            key: "linkedin",
+            label: "LinkedIn",
+            href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+            Icon: Link2,
+            className:
+                "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100",
+        },
+    ];
+
+    const copyToClipboard = async () => {
+        if (!shareUrl) {
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            setIsCopySuccess(true);
+            setShareNotice("Link berhasil disalin.");
+            window.setTimeout(() => {
+                setIsCopySuccess(false);
+                setShareNotice("");
+            }, 1800);
+        } catch (error) {
+            setShareNotice("Gagal menyalin link.");
+        }
+    };
+
+    const handleNativeShare = async () => {
+        if (typeof navigator === "undefined" || !navigator.share) {
+            copyToClipboard();
+            return;
+        }
+
+        try {
+            await navigator.share({
+                title,
+                text: teaser,
+                url: shareUrl,
+            });
+            setShareNotice("");
+        } catch (error) {
+            if (error?.name !== "AbortError") {
+                setShareNotice("Browser tidak bisa membagikan konten ini.");
+            }
+        }
+    };
+
+    return (
+        <section className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                        Bagikan Kilas Data
+                    </p>
+                    <p className="text-sm text-slate-600">
+                        Bagikan ke sosial media atau copy link.
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onClick={handleNativeShare}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+                >
+                    <Share2 className="h-4 w-4" />
+                    Share
+                </button>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {shareLinks.map((item) => {
+                    const Icon = item.Icon;
+                    return (
+                        <a
+                            key={item.key}
+                            href={item.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition ${item.className}`}
+                        >
+                            <Icon className="h-4 w-4" />
+                            {item.label}
+                        </a>
+                    );
+                })}
+            </div>
+
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
+                <p className="truncate text-xs text-slate-500">{shareUrl}</p>
+                <button
+                    type="button"
+                    onClick={copyToClipboard}
+                    className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold transition ${
+                        isCopySuccess
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                >
+                    <Copy className="h-3.5 w-3.5" />
+                    {isCopySuccess ? "Tersalin" : "Copy"}
+                </button>
+            </div>
+
+            {shareNotice && (
+                <p className="mt-2 text-xs font-medium text-slate-500">
+                    {shareNotice}
+                </p>
+            )}
+        </section>
+    );
+}
 
 export default function KilasDataIndex({
     surveys,
@@ -455,6 +621,8 @@ export default function KilasDataIndex({
                                         </span>
                                     </div>
                                 </div>
+
+                                <KilasDataSharePanel selectedData={selectedData} />
 
                                 {/* --- LOGIC LOCKDOWN --- */}
                                 {/* Kunci penuh mengikuti status lock dari backend */}

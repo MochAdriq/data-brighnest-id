@@ -565,6 +565,10 @@ export default function ArticleViewer({ article, chartData, premiumPricing }) {
                     </div>
                 </div>
 
+                <div className="mb-8">
+                    <SharePanel article={article} />
+                </div>
+
                 {isLocked && lockMode === "full" ? (
                     <PaywallPanel article={article} pricing={premiumPricing} />
                 ) : (
